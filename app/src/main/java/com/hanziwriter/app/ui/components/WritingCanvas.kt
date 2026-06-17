@@ -1,0 +1,267 @@
+package com.hanziwriter.app.ui.components
+
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.unit.dp
+import com.hanziwriter.app.domain.model.character.Character
+
+import com.hanziwriter.app.domain.model.geometry.Point
+import com.hanziwriter.app.util.svgToAndroidPath
+
+data class CanvasViewport(
+    val scale: Float,
+    val offsetX: Float,
+    val offsetY: Float
+)
+
+data class DrawableStroke(
+    val svgPath: String,
+    val medianPoints: List<Point>,
+    val color: Color,
+    val opacity: Float,
+    val drawPortion: Float,
+    val strokeNum: Int
+)
+
+data class DrawableUserStroke(
+    val points: List<Offset>,
+    val color: Color
+)
+
+@Composable
+fun WritingCanvas(
+    character: Character?,
+    referenceStrokes: List<DrawableStroke>,
+    userStrokes: List<DrawableUserStroke>,
+    currentUserPoints: List<Offset>,
+    showGrid: Boolean = true,
+    showNumbers: Boolean = false,
+    currentStrokeIndex: Int = -1,
+    animationProgress: Float = 1f,
+    onStrokeStart: ((Offset) -> Unit)? = null,
+    onStrokeMove: ((Offset) -> Unit)? = null,
+    onStrokeEnd: (() -> Unit)? = null,
+    modifier: Modifier = Modifier
+) {
+    val primaryColor = MaterialTheme.colorScheme.primary
+
+    Box(modifier = modifier) {
+        if (showGrid) {
+            TianZiGe(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(4.dp)
+            )
+        }
+
+        Canvas(
+            modifier = Modifier
+                .fillMaxSize()
+                .then(
+                    if (onStrokeStart != null) {
+                        Modifier.pointerInput(Unit) {
+                            detectDragGestures(
+                                onDragStart = { offset -> onStrokeStart(offset) },
+                                onDrag = { change, _ ->
+                                    onStrokeMove?.invoke(change.position)
+                                },
+                                onDragEnd = { onStrokeEnd?.invoke() }
+                            )
+                        }
+                    } else Modifier
+                )
+        ) {
+            val canvasWidth = size.width
+            val canvasHeight = size.height
+            val viewport = computeViewport(canvasWidth, canvasHeight)
+
+            // Draw reference strokes
+            for (stroke in referenceStrokes) {
+                if (stroke.opacity <= 0f) continue
+                drawSvgStroke(
+                    svgPath = stroke.svgPath,
+                    viewport = viewport,
+                    color = stroke.color.copy(alpha = stroke.opacity),
+                    drawPortion = stroke.drawPortion
+                )
+            }
+
+            // Draw user strokes
+            for (userStroke in userStrokes) {
+                drawUserPath(userStroke.points, userStroke.color)
+            }
+
+            // Draw current in-progress stroke
+            if (currentUserPoints.size > 1) {
+                drawUserPath(currentUserPoints, primaryColor)
+            }
+
+            // Draw stroke number badges
+            if (showNumbers && character != null) {
+                for (i in character.strokes.indices) {
+                    val stroke = character.strokes[i]
+                    val startPoint = stroke.startingPoint
+                    val mapped = mapPoint(startPoint, viewport)
+                    val badgeVisible = animationProgress < 1f || i >= currentStrokeIndex
+
+                    if (badgeVisible) {
+                        drawStrokeBadge(
+                            number = i + 1,
+                            centerX = mapped.x,
+                            centerY = mapped.y,
+                            color = primaryColor
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun computeViewport(canvasWidth: Float, canvasHeight: Float): CanvasViewport {
+    val charSize = 1024f
+    val scale = minOf(canvasWidth, canvasHeight) / charSize
+    val offsetX = (canvasWidth - charSize * scale) / 2f
+    val offsetY = (canvasHeight - charSize * scale) / 2f
+    return CanvasViewport(scale, offsetX, offsetY)
+}
+
+private fun mapPoint(point: Point, vp: CanvasViewport): Offset {
+    return Offset(
+        x = point.x.toFloat() * vp.scale + vp.offsetX,
+        y = (1024f - point.y.toFloat()) * vp.scale + vp.offsetY
+    )
+}
+
+private fun DrawScope.drawSvgStroke(
+    svgPath: String,
+    viewport: CanvasViewport,
+    color: Color,
+    drawPortion: Float = 1f
+) {
+    val path = android.graphics.Path()
+    val scale = viewport.scale
+    val ox = viewport.offsetX
+    val oy = viewport.offsetY
+
+    try {
+        val nativePath = svgToAndroidPath(svgPath)
+        path.set(nativePath)
+        // SVG data uses Y-up (Cartesian), flip to screen Y-down
+        val matrix = android.graphics.Matrix()
+        matrix.postScale(scale, -scale)
+        matrix.postTranslate(ox, oy + 1024f * scale)
+        path.transform(matrix)
+
+        val paint = android.graphics.Paint().apply {
+            this.color = android.graphics.Color.argb(
+                (color.alpha * 255).toInt(),
+                (color.red * 255).toInt(),
+                (color.green * 255).toInt(),
+                (color.blue * 255).toInt()
+            )
+            strokeWidth = 6f * scale
+            style = android.graphics.Paint.Style.STROKE
+            strokeCap = android.graphics.Paint.Cap.ROUND
+            strokeJoin = android.graphics.Paint.Join.ROUND
+            isAntiAlias = true
+        }
+
+        val canvas = drawContext.canvas.nativeCanvas
+
+        val drawPath = if (drawPortion < 1f) {
+            val bounds = android.graphics.RectF()
+            path.computeBounds(bounds, true)
+            val clipPath = android.graphics.Path()
+            clipPath.addRect(
+                bounds.left,
+                bounds.top,
+                bounds.left + bounds.width() * drawPortion,
+                bounds.bottom,
+                android.graphics.Path.Direction.CW
+            )
+            clipPath.op(path, android.graphics.Path.Op.INTERSECT)
+            clipPath
+        } else {
+            path
+        }
+        canvas.drawPath(drawPath, paint)
+    } catch (_: Exception) {
+        // Fallback: skip if path parsing fails
+    }
+}
+
+private fun DrawScope.drawUserPath(points: List<Offset>, color: Color) {
+    if (points.size < 2) return
+    val path = Path()
+    path.moveTo(points.first().x, points.first().y)
+    for (i in 1 until points.size) {
+        path.lineTo(points[i].x, points[i].y)
+    }
+    drawPath(
+        path = path,
+        color = color,
+        style = Stroke(
+            width = 8f,
+            cap = StrokeCap.Round,
+            join = StrokeJoin.Round
+        )
+    )
+}
+
+private fun DrawScope.drawStrokeBadge(
+    number: Int,
+    centerX: Float,
+    centerY: Float,
+    color: Color,
+    radius: Float = 28f
+) {
+    // White fill circle
+    drawCircle(
+        color = Color.White,
+        radius = radius,
+        center = Offset(centerX, centerY)
+    )
+    // Colored border
+    drawCircle(
+        color = color,
+        radius = radius,
+        center = Offset(centerX, centerY),
+        style = Stroke(width = 4f)
+    )
+    // Number
+    val paint = android.graphics.Paint().apply {
+        this.color = android.graphics.Color.argb(
+            (color.alpha * 255).toInt(),
+            (color.red * 255).toInt(),
+            (color.green * 255).toInt(),
+            (color.blue * 255).toInt()
+        )
+        textSize = 28f
+        textAlign = android.graphics.Paint.Align.CENTER
+        isFakeBoldText = true
+    }
+    drawContext.canvas.nativeCanvas.drawText(
+        number.toString(),
+        centerX,
+        centerY + paint.textSize / 3f,
+        paint
+    )
+}
+
+
