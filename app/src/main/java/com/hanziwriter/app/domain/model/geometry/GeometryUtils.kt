@@ -71,15 +71,41 @@ object GeometryUtils {
         return c(m - 1, n - 1)
     }
 
+    fun resampleCurve(points: List<Point>, numSamples: Int): List<Point> {
+        if (points.size < 2 || numSamples < 2) return points
+        val totalLength = length(points)
+        if (totalLength == 0.0) return points
+        val result = mutableListOf(points[0])
+        var accumulated = 0.0
+        val segmentLength = totalLength / (numSamples - 1)
+        for (i in 1 until points.size) {
+            val segLen = points[i].distanceTo(points[i - 1])
+            if (segLen == 0.0) continue
+            while (accumulated + segLen >= segmentLength * (result.size)) {
+                val t = (segmentLength * (result.size) - accumulated) / segLen
+                val px = points[i - 1].x + (points[i].x - points[i - 1].x) * t
+                val py = points[i - 1].y + (points[i].y - points[i - 1].y) * t
+                result.add(Point(px, py))
+                if (result.size >= numSamples) return result
+            }
+            accumulated += segLen
+        }
+        if (result.size < numSamples) result.add(points.last())
+        return result
+    }
+
     fun shapeFit(
         userPoints: List<Point>,
         strokePoints: List<Point>,
         leniency: Double = 1.0
     ): Boolean {
-        val normUser = normalizeCurve(userPoints)
-        val normStroke = normalizeCurve(strokePoints)
+        val maxPoints = maxOf(userPoints.size, strokePoints.size).coerceAtLeast(16)
+        val resampledUser = resampleCurve(userPoints, maxPoints)
+        val resampledStroke = resampleCurve(strokePoints, maxPoints)
+        val normUser = normalizeCurve(resampledUser)
+        val normStroke = normalizeCurve(resampledStroke)
         val frechet = frechetDist(normUser, normStroke)
-        val threshold = 0.4 / (leniency * 0.75)
+        val threshold = 0.4 * leniency / 0.75
         return frechet <= threshold
     }
 

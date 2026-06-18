@@ -5,8 +5,13 @@ import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -17,6 +22,7 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.hanziwriter.app.domain.model.character.Character
 
@@ -59,6 +65,16 @@ fun WritingCanvas(
     modifier: Modifier = Modifier
 ) {
     val primaryColor = MaterialTheme.colorScheme.primary
+    var canvasSize by remember { mutableStateOf(IntSize.Zero) }
+
+    fun screenToChar(screenPos: Offset): Offset {
+        if (canvasSize.width <= 0 || canvasSize.height <= 0) return screenPos
+        val vp = computeViewport(canvasSize.width.toFloat(), canvasSize.height.toFloat())
+        return Offset(
+            (screenPos.x - vp.offsetX) / vp.scale,
+            1024f - (screenPos.y - vp.offsetY) / vp.scale
+        )
+    }
 
     Box(modifier = modifier) {
         if (showGrid) {
@@ -72,13 +88,18 @@ fun WritingCanvas(
         Canvas(
             modifier = Modifier
                 .fillMaxSize()
+                .onGloballyPositioned { coordinates ->
+                    canvasSize = coordinates.size
+                }
                 .then(
                     if (onStrokeStart != null) {
                         Modifier.pointerInput(Unit) {
                             detectDragGestures(
-                                onDragStart = { offset -> onStrokeStart(offset) },
+                                onDragStart = { offset ->
+                                    onStrokeStart(screenToChar(offset))
+                                },
                                 onDrag = { change, _ ->
-                                    onStrokeMove?.invoke(change.position)
+                                    onStrokeMove?.invoke(screenToChar(change.position))
                                 },
                                 onDragEnd = { onStrokeEnd?.invoke() }
                             )
@@ -101,14 +122,14 @@ fun WritingCanvas(
                 )
             }
 
-            // Draw user strokes
+            // Draw user strokes (convert char-space to screen-space)
             for (userStroke in userStrokes) {
-                drawUserPath(userStroke.points, userStroke.color)
+                drawUserPath(userStroke.points, userStroke.color, viewport)
             }
 
             // Draw current in-progress stroke
             if (currentUserPoints.size > 1) {
-                drawUserPath(currentUserPoints, primaryColor)
+                drawUserPath(currentUserPoints, primaryColor, viewport)
             }
 
             // Draw stroke number badges
@@ -168,14 +189,24 @@ private fun DrawScope.drawSvgStroke(
         matrix.postTranslate(ox, oy + 1024f * scale)
         path.transform(matrix)
 
-        val paint = android.graphics.Paint().apply {
+        val fillPaint = android.graphics.Paint().apply {
             this.color = android.graphics.Color.argb(
                 (color.alpha * 255).toInt(),
                 (color.red * 255).toInt(),
                 (color.green * 255).toInt(),
                 (color.blue * 255).toInt()
             )
-            strokeWidth = 6f * scale
+            style = android.graphics.Paint.Style.FILL
+            isAntiAlias = true
+        }
+        val strokePaint = android.graphics.Paint().apply {
+            this.color = android.graphics.Color.argb(
+                (color.alpha * 255).toInt(),
+                (color.red * 255).toInt(),
+                (color.green * 255).toInt(),
+                (color.blue * 255).toInt()
+            )
+            strokeWidth = 3f * scale
             style = android.graphics.Paint.Style.STROKE
             strokeCap = android.graphics.Paint.Cap.ROUND
             strokeJoin = android.graphics.Paint.Join.ROUND
@@ -200,18 +231,31 @@ private fun DrawScope.drawSvgStroke(
         } else {
             path
         }
-        canvas.drawPath(drawPath, paint)
+        canvas.drawPath(drawPath, fillPaint)
+        canvas.drawPath(drawPath, strokePaint)
     } catch (_: Exception) {
         // Fallback: skip if path parsing fails
     }
 }
 
-private fun DrawScope.drawUserPath(points: List<Offset>, color: Color) {
+private fun DrawScope.drawUserPath(points: List<Offset>, color: Color, viewport: CanvasViewport? = null) {
     if (points.size < 2) return
     val path = Path()
-    path.moveTo(points.first().x, points.first().y)
+    val first = if (viewport != null) {
+        Offset(
+            points.first().x * viewport.scale + viewport.offsetX,
+            (1024f - points.first().y) * viewport.scale + viewport.offsetY
+        )
+    } else points.first()
+    path.moveTo(first.x, first.y)
     for (i in 1 until points.size) {
-        path.lineTo(points[i].x, points[i].y)
+        val p = if (viewport != null) {
+            Offset(
+                points[i].x * viewport.scale + viewport.offsetX,
+                (1024f - points[i].y) * viewport.scale + viewport.offsetY
+            )
+        } else points[i]
+        path.lineTo(p.x, p.y)
     }
     drawPath(
         path = path,
