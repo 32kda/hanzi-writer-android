@@ -4,10 +4,13 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -17,25 +20,26 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.hanziwriter.app.ui.components.WritingCanvas
 import com.hanziwriter.app.ui.components.DrawableStroke
-import com.hanziwriter.app.ui.components.DrawableUserStroke
-import androidx.compose.ui.graphics.Color
 
 @Composable
 fun LearnScreen(
-    unicode: Int,
+    unicodes: List<Int>,
     onComplete: () -> Unit,
     onBack: () -> Unit,
     viewModel: LearnViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
 
-    // Start learning when screen appears
-    androidx.compose.runtime.LaunchedEffect(unicode) {
-        viewModel.startLearn(unicode)
+    // Start learning when screen appears (once per list of unicodes)
+    androidx.compose.runtime.LaunchedEffect(unicodes) {
+        viewModel.startLearn(unicodes)
     }
 
     // Navigate on complete
@@ -78,12 +82,22 @@ fun LearnScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
+            .windowInsetsPadding(WindowInsets.systemBars)
+            .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
-        // Character info header
+        // Character info header: pinyin + definition
         Text(
-            text = character.symbol,
-            style = MaterialTheme.typography.displayLarge,
+            text = character.pinyin,
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.align(Alignment.CenterHorizontally)
+        )
+        Text(
+            text = character.definition,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
             modifier = Modifier.align(Alignment.CenterHorizontally)
         )
 

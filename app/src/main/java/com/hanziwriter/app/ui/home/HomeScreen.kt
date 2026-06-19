@@ -1,13 +1,13 @@
 package com.hanziwriter.app.ui.home
 
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -25,9 +25,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 
 @Composable
 fun HomeScreen(
-    onNavigateToLearn: (Int) -> Unit,
-    onNavigateToDrill: (Int) -> Unit,
-    onNavigateToQuiz: (Int) -> Unit,
+    onNavigateToLearn: (List<Int>) -> Unit,
+    onNavigateToDrill: (List<Int>) -> Unit,
+    onNavigateToQuiz: (List<Int>) -> Unit,
     onChangeSet: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
@@ -36,6 +36,7 @@ fun HomeScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -71,27 +72,30 @@ fun HomeScreen(
         // Activity cards
         ActivityCard(
             title = "Learn",
-            description = "2-3 new characters\nwith stroke animation",
+            description = "2-3 new characters",
+            chars = state.learnCharacters,
             color = MaterialTheme.colorScheme.primary,
-            onClick = { state.nextLearningChar?.let { onNavigateToLearn(it) } }
+            onClick = { if (state.nextLearningChars.isNotEmpty()) onNavigateToLearn(state.nextLearningChars) }
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
         ActivityCard(
             title = "Drill",
-            description = "5 review characters\nwith fading strokes",
+            description = "5 review characters",
+            chars = state.drillCharacters,
             color = MaterialTheme.colorScheme.secondary,
-            onClick = { state.nextReviewChar?.let { onNavigateToDrill(it) } }
+            onClick = { if (state.nextReviewChars.isNotEmpty()) onNavigateToDrill(state.nextReviewChars) }
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
         ActivityCard(
             title = "Quiz",
-            description = "10 characters\nfull recall",
+            description = "10 characters",
+            chars = state.quizCharacters,
             color = MaterialTheme.colorScheme.error,
-            onClick = { state.nextQuizChar?.let { onNavigateToQuiz(it) } }
+            onClick = { if (state.nextQuizChars.isNotEmpty()) onNavigateToQuiz(state.nextQuizChars) }
         )
     }
 }
@@ -101,6 +105,7 @@ fun HomeScreen(
 private fun ActivityCard(
     title: String,
     description: String,
+    chars: List<com.hanziwriter.app.domain.model.quiz.QuizCard>,
     color: androidx.compose.ui.graphics.Color,
     onClick: () -> Unit
 ) {
@@ -111,23 +116,30 @@ private fun ActivityCard(
         ),
         onClick = onClick
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(20.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(20.dp)
         ) {
-            Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = color
+            )
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+            if (chars.isNotEmpty()) {
                 Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = color
-                )
-                Text(
-                    text = description,
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(top = 4.dp)
+                    text = chars.joinToString(" · ") { card ->
+                        "${card.character} (${card.pinyin})"
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 8.dp)
                 )
             }
         }

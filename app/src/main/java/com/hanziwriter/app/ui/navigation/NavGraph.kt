@@ -10,29 +10,112 @@ import com.hanziwriter.app.ui.home.HomeScreen
 import com.hanziwriter.app.ui.learn.LearnScreen
 import com.hanziwriter.app.ui.setselector.SetSelectorScreen
 
+// ═══════════════════════════════════════════════════════════════════
+// Route definitions
+// ═══════════════════════════════════════════════════════════════════
+//
+// Each constant defines a route pattern with {placeholders} for arguments.
+// The helper functions below build concrete route strings that the
+// NavController uses to navigate.
+//
+// ── Navigation glossary ──
+//   NavController   : the "remote control" for navigation — it manages
+//                      a back stack (like a browser history) of screens.
+//   NavHost         : the Composable that hosts all destinations (screens).
+//   composable()    : registers one screen at a given route pattern.
+//   navArgument     : declares the name & type of a {placeholder} argument.
+//   popBackStack()  : removes the current screen (goes back).
+//   popUpTo(route)  : removes screens from the stack up to (and optionally
+//                      including) the given route.
+//
+// ── How a screen transition works ──
+//   1. A user taps a button → a callback fires.
+//   2. That callback calls navController.navigate("some/route/value").
+//   3. The NavHost matches "some/route/value" against its registered patterns.
+//   4. The matching composable() block runs, parsing the {value} from the route.
+//   5. The block calls a screen Composable (e.g. LearnScreen) with the parsed data.
+// ═══════════════════════════════════════════════════════════════════
+
 object Routes {
+
+    // ── Screen 1: Set Selector  ──
+    // The first screen the user sees — pick a character set to study.
     const val SET_SELECTOR = "set_selector"
+
+    // ── Screen 2: Home (dashboard)  ──
+    // Shows the chosen set name, streak info, and activity cards.
+    // {setName} is the directory name of the selected character set (e.g. "hsk1").
     const val HOME = "home/{setName}"
-    const val LEARN = "learn/{unicode}"
-    const val DRILL = "drill/{unicode}"
-    const val QUIZ = "quiz/{unicode}"
+
+    // ── Screens 3-5: Learn, Drill, Quiz  ──
+    // Each accepts a comma-separated list of Unicode code points.
+    // Example route: "learn/25105,22909,22823"  (three characters)
+    // {unicodes} is stored as a plain String and parsed into a list of Ints.
+    const val LEARN = "learn/{unicodes}"
+    const val DRILL = "drill/{unicodes}"
+    const val QUIZ = "quiz/{unicodes}"
+
+    // ── Screen 6: Quiz Results  ──
     const val RESULTS = "results/{mode}/{score}"
 
+    // ── Helper functions that build concrete route strings ──
+
     fun home(setName: String) = "home/$setName"
-    fun learn(unicode: Int) = "learn/$unicode"
-    fun drill(unicode: Int) = "drill/$unicode"
-    fun quiz(unicode: Int) = "quiz/$unicode"
+
+    /**
+     * Builds a learn route from a list of Unicode code points.
+     * Example: learn(listOf(25105, 22909, 22823)) → "learn/25105,22909,22823"
+     */
+    fun learn(unicodes: List<Int>) = "learn/${unicodes.joinToString(",")}"
+
+    fun drill(unicodes: List<Int>) = "drill/${unicodes.joinToString(",")}"
+
+    fun quiz(unicodes: List<Int>) = "quiz/${unicodes.joinToString(",")}"
+
     fun results(mode: String, score: Int) = "results/$mode/$score"
 }
 
 @Composable
-fun NavGraph() {
+fun NavGraph(
+    // If the user previously selected a character set, skip the set selector
+    // and go straight to the Home screen. Null means first launch.
+    savedSetName: String? = null,
+    // Callback invoked when the user picks a set — the caller (MainActivity)
+    // should persist the name so it can be passed back as savedSetName next time.
+    onSelectSet: (String) -> Unit = {}
+) {
+    // ── rememberNavController() ──
+    // Creates a NavController that survives recomposition (screen rotations, etc.).
+    // Think of it as the navigation "remote control":
+    //   navController.navigate("route")  → push a new screen onto the stack
+    //   navController.popBackStack()     → go back to the previous screen
     val navController = rememberNavController()
 
-    NavHost(navController = navController, startDestination = Routes.SET_SELECTOR) {
+    // ── NavHost ──
+    // The container that holds all destinations. The system matches the
+    // current route against each composable() pattern and shows the matching one.
+    // startDestination is the first screen displayed when the app opens.
+    // If a set was previously saved, start directly at Home; otherwise show the
+    // Set Selector for first-time setup.
+    val startDestination = if (savedSetName != null) {
+        Routes.home(savedSetName)
+    } else {
+        Routes.SET_SELECTOR
+    }
+
+    NavHost(navController = navController, startDestination = startDestination) {
+
+        // ══════════════════════════════════════════════
+        // 1. Set Selector Screen
+        // ══════════════════════════════════════════════
         composable(Routes.SET_SELECTOR) {
             SetSelectorScreen(
                 onSetSelected = { setName ->
+                    // Save the chosen set for next app launch
+                    onSelectSet(setName)
+                    // Navigate to the Home screen and remove the Set Selector from
+                    // the back stack (inclusive = true means even the selector itself
+                    // is removed), so pressing "back" won't return to it.
                     navController.navigate(Routes.home(setName)) {
                         popUpTo(Routes.SET_SELECTOR) { inclusive = true }
                     }
@@ -40,21 +123,28 @@ fun NavGraph() {
             )
         }
 
+        // ══════════════════════════════════════════════
+        // 2. Home Screen
+        // ══════════════════════════════════════════════
         composable(
             route = Routes.HOME,
             arguments = listOf(navArgument("setName") { type = NavType.StringType })
         ) {
+            // HomeViewModel gets "setName" automatically from SavedStateHandle
             HomeScreen(
-                onNavigateToLearn = { unicode ->
-                    navController.navigate(Routes.learn(unicode))
+                // Each callback now receives a List<Int> (the full set of unicodes
+                // for that activity) instead of a single Int.
+                onNavigateToLearn = { unicodes ->
+                    navController.navigate(Routes.learn(unicodes))
                 },
-                onNavigateToDrill = { unicode ->
-                    navController.navigate(Routes.drill(unicode))
+                onNavigateToDrill = { unicodes ->
+                    navController.navigate(Routes.drill(unicodes))
                 },
-                onNavigateToQuiz = { unicode ->
-                    navController.navigate(Routes.quiz(unicode))
+                onNavigateToQuiz = { unicodes ->
+                    navController.navigate(Routes.quiz(unicodes))
                 },
                 onChangeSet = {
+                    // Go back to set selector, removing home from the stack.
                     navController.navigate(Routes.SET_SELECTOR) {
                         popUpTo(Routes.HOME) { inclusive = true }
                     }
@@ -62,44 +152,66 @@ fun NavGraph() {
             )
         }
 
+        // ══════════════════════════════════════════════
+        // 3. Learn Screen
+        // ══════════════════════════════════════════════
         composable(
             route = Routes.LEARN,
-            arguments = listOf(navArgument("unicode") { type = NavType.IntType })
+            // NavType.StringType because {unicodes} is a comma-separated string
+            arguments = listOf(navArgument("unicodes") { type = NavType.StringType })
         ) { backStackEntry ->
-            val unicode = backStackEntry.arguments?.getInt("unicode") ?: 0
+            // Read the raw string from the route arguments ("25105,22909,22823")
+            val unicodesStr = backStackEntry.arguments?.getString("unicodes") ?: ""
+            // Split by comma and convert each piece to an Int (skipping invalid entries)
+            val unicodes = unicodesStr.split(",").mapNotNull { it.toIntOrNull() }
+
             LearnScreen(
-                unicode = unicode,
+                unicodes = unicodes,              // ← now a list
                 onComplete = { navController.popBackStack() },
                 onBack = { navController.popBackStack() }
             )
         }
 
+        // ══════════════════════════════════════════════
+        // 4. Drill Screen (reuses the LearnScreen component)
+        // ══════════════════════════════════════════════
         composable(
             route = Routes.DRILL,
-            arguments = listOf(navArgument("unicode") { type = NavType.IntType })
+            arguments = listOf(navArgument("unicodes") { type = NavType.StringType })
         ) { backStackEntry ->
-            val unicode = backStackEntry.arguments?.getInt("unicode") ?: 0
+            val unicodesStr = backStackEntry.arguments?.getString("unicodes") ?: ""
+            val unicodes = unicodesStr.split(",").mapNotNull { it.toIntOrNull() }
+
             LearnScreen(
-                unicode = unicode,
+                unicodes = unicodes,
                 onComplete = { navController.popBackStack() },
                 onBack = { navController.popBackStack() }
             )
         }
 
+        // ══════════════════════════════════════════════
+        // 5. Quiz Screen (also reuses LearnScreen)
+        // ══════════════════════════════════════════════
         composable(
             route = Routes.QUIZ,
-            arguments = listOf(navArgument("unicode") { type = NavType.IntType })
+            arguments = listOf(navArgument("unicodes") { type = NavType.StringType })
         ) { backStackEntry ->
-            val unicode = backStackEntry.arguments?.getInt("unicode") ?: 0
+            val unicodesStr = backStackEntry.arguments?.getString("unicodes") ?: ""
+            val unicodes = unicodesStr.split(",").mapNotNull { it.toIntOrNull() }
+
             LearnScreen(
-                unicode = unicode,
+                unicodes = unicodes,
                 onComplete = {
+                    // When quiz finishes, navigate to the Results screen
                     navController.navigate(Routes.results("quiz", 80))
                 },
                 onBack = { navController.popBackStack() }
             )
         }
 
+        // ══════════════════════════════════════════════
+        // 6. Results Screen
+        // ══════════════════════════════════════════════
         composable(
             route = Routes.RESULTS,
             arguments = listOf(
@@ -107,6 +219,7 @@ fun NavGraph() {
                 navArgument("score") { type = NavType.IntType }
             )
         ) {
+            // TODO: Replace with a proper ResultsScreen component
             androidx.compose.material3.Text("Results screen")
         }
     }

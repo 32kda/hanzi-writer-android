@@ -18,25 +18,59 @@ object CharacterSelector {
 
     fun selectForDrill(
         progressList: List<CharacterProgress>,
+        availableCards: List<QuizCard>,
         count: Int = 5
     ): List<Int> {
-        return progressList
+        val trainedUnicodes = progressList.map { it.unicode }.toSet()
+        val result = linkedSetOf<Int>()
+
+        // 1. Pick trained characters (≥3 attempts) in priority order
+        result.addAll(progressList
             .filter { it.totalAttempts >= 3 }
             .sortedByDescending { PriorityCalculator.calculatePriority(it) }
             .take(count)
             .map { it.unicode }
+        )
+
+        // 2. If there aren't enough trained chars, fill with untrained ones
+        if (result.size < count) {
+            availableCards
+                .map { it.character.first().code }
+                .filter { it !in trainedUnicodes && it !in result }
+                .take(count - result.size)
+                .forEach { result.add(it) }
+        }
+
+        return result.toList()
     }
 
     fun selectForQuiz(
         progressList: List<CharacterProgress>,
+        availableCards: List<QuizCard>,
         count: Int = 10
     ): List<Int> {
         val now = System.currentTimeMillis()
         val oneDayMs = 86_400_000L
-        return progressList
+        val trainedUnicodes = progressList.map { it.unicode }.toSet()
+        val result = linkedSetOf<Int>()
+
+        // 1. Pick trained characters due for review (>24h since last practice)
+        result.addAll(progressList
             .filter { it.lastPracticed < now - oneDayMs }
             .sortedByDescending { PriorityCalculator.calculatePriority(it) }
             .take(count)
             .map { it.unicode }
+        )
+
+        // 2. If there aren't enough, fill with untrained characters
+        if (result.size < count) {
+            availableCards
+                .map { it.character.first().code }
+                .filter { it !in trainedUnicodes && it !in result }
+                .take(count - result.size)
+                .forEach { result.add(it) }
+        }
+
+        return result.toList()
     }
 }

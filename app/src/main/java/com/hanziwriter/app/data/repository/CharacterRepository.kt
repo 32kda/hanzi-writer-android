@@ -28,7 +28,12 @@ class CharacterRepository @Inject constructor(
                 strokeNum = strokeEntity.strokeIndex
             ).also { it.parseSvgPath(12) }
         }
-        return Character(symbol = entity.character, strokes = strokes)
+        return Character(
+            symbol = entity.character,
+            strokes = strokes,
+            pinyin = entity.pinyin,
+            definition = entity.definition
+        )
     }
 
     private fun parseMedianPoints(json: String): List<com.hanziwriter.app.domain.model.geometry.Point> {
