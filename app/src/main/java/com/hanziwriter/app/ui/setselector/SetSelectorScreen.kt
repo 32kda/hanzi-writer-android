@@ -23,6 +23,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsTopHeight
 
 @Composable
 fun SetSelectorScreen(
@@ -34,7 +37,9 @@ fun SetSelectorScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
+            .padding(horizontal = 16.dp)
+            .windowInsetsTopHeight(WindowInsets.statusBars)
+            .padding(top = 16.dp)
     ) {
         Text(
             text = "Choose a Character Set",

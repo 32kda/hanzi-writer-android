@@ -93,7 +93,7 @@ fun HomeScreen(
         ActivityCard(
             title = "Quiz",
             description = "10 characters",
-            chars = state.quizCharacters,
+            chars = emptyList(),
             color = MaterialTheme.colorScheme.error,
             onClick = { if (state.nextQuizChars.isNotEmpty()) onNavigateToQuiz(state.nextQuizChars) }
         )

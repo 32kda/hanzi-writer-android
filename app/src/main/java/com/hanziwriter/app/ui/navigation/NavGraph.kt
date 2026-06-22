@@ -7,7 +7,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.hanziwriter.app.ui.home.HomeScreen
+import com.hanziwriter.app.ui.learn.DrillScreen
 import com.hanziwriter.app.ui.learn.LearnScreen
+import com.hanziwriter.app.ui.learn.QuizScreen
 import com.hanziwriter.app.ui.setselector.SetSelectorScreen
 
 // ═══════════════════════════════════════════════════════════════════
@@ -97,7 +99,7 @@ fun NavGraph(
     // startDestination is the first screen displayed when the app opens.
     // If a set was previously saved, start directly at Home; otherwise show the
     // Set Selector for first-time setup.
-    val startDestination = if (savedSetName != null) {
+    val startDestination = if (!savedSetName.isNullOrBlank()) {
         Routes.home(savedSetName)
     } else {
         Routes.SET_SELECTOR
@@ -173,7 +175,7 @@ fun NavGraph(
         }
 
         // ══════════════════════════════════════════════
-        // 4. Drill Screen (reuses the LearnScreen component)
+        // 4. Drill Screen
         // ══════════════════════════════════════════════
         composable(
             route = Routes.DRILL,
@@ -182,7 +184,7 @@ fun NavGraph(
             val unicodesStr = backStackEntry.arguments?.getString("unicodes") ?: ""
             val unicodes = unicodesStr.split(",").mapNotNull { it.toIntOrNull() }
 
-            LearnScreen(
+            DrillScreen(
                 unicodes = unicodes,
                 onComplete = { navController.popBackStack() },
                 onBack = { navController.popBackStack() }
@@ -190,7 +192,7 @@ fun NavGraph(
         }
 
         // ══════════════════════════════════════════════
-        // 5. Quiz Screen (also reuses LearnScreen)
+        // 5. Quiz Screen
         // ══════════════════════════════════════════════
         composable(
             route = Routes.QUIZ,
@@ -199,10 +201,9 @@ fun NavGraph(
             val unicodesStr = backStackEntry.arguments?.getString("unicodes") ?: ""
             val unicodes = unicodesStr.split(",").mapNotNull { it.toIntOrNull() }
 
-            LearnScreen(
+            QuizScreen(
                 unicodes = unicodes,
                 onComplete = {
-                    // When quiz finishes, navigate to the Results screen
                     navController.navigate(Routes.results("quiz", 80))
                 },
                 onBack = { navController.popBackStack() }

@@ -16,40 +16,29 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.hanziwriter.app.ui.components.WritingCanvas
 import com.hanziwriter.app.ui.components.DrawableStroke
+import com.hanziwriter.app.ui.components.WritingCanvas
 
 @Composable
-fun LearnScreen(
-    unicodes: List<Int>,
-    onComplete: () -> Unit,
+fun SessionScreenContent(
+    state: LearnUiState,
+    onStrokeStart: (Offset) -> Unit,
+    onStrokeMove: (Offset) -> Unit,
+    onStrokeEnd: () -> Unit,
     onBack: () -> Unit,
-    viewModel: LearnViewModel = hiltViewModel()
+    modifier: Modifier = Modifier
 ) {
-    val state by viewModel.state.collectAsState()
-
-    // Start learning when screen appears (once per list of unicodes)
-    androidx.compose.runtime.LaunchedEffect(unicodes) {
-        viewModel.startLearn(unicodes)
-    }
-
-    // Navigate on complete
-    androidx.compose.runtime.LaunchedEffect(state.isComplete) {
-        if (state.isComplete) {
-            viewModel.playLessonCompleteSound()
-            onComplete()
-        }
-    }
-
     if (state.isLoading) {
         Column(
             modifier = Modifier.fillMaxSize(),
@@ -80,12 +69,11 @@ fun LearnScreen(
     } else emptyList()
 
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .windowInsetsPadding(WindowInsets.systemBars)
             .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
-        // Character info header: pinyin + definition
         Text(
             text = character.pinyin,
             style = MaterialTheme.typography.headlineMedium,
@@ -103,7 +91,6 @@ fun LearnScreen(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Writing canvas
         WritingCanvas(
             character = character,
             referenceStrokes = referenceStrokes,
@@ -112,9 +99,9 @@ fun LearnScreen(
             showNumbers = state.showNumbers,
             currentStrokeIndex = state.currentStrokeIndex,
             animationProgress = 1f,
-            onStrokeStart = { offset -> viewModel.onStrokeStart(offset) },
-            onStrokeMove = { offset -> viewModel.onStrokeMove(offset) },
-            onStrokeEnd = { viewModel.onStrokeEnd() },
+            onStrokeStart = onStrokeStart,
+            onStrokeMove = onStrokeMove,
+            onStrokeEnd = onStrokeEnd,
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
@@ -122,7 +109,6 @@ fun LearnScreen(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Info + controls
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
@@ -136,4 +122,33 @@ fun LearnScreen(
             }
         }
     }
+}
+
+@Composable
+fun LearnScreen(
+    unicodes: List<Int>,
+    onComplete: () -> Unit,
+    onBack: () -> Unit,
+    viewModel: LearnSessionViewModel = hiltViewModel()
+) {
+    val state by viewModel.state.collectAsState()
+
+    LaunchedEffect(unicodes) {
+        viewModel.startSession(unicodes)
+    }
+
+    LaunchedEffect(state.isComplete) {
+        if (state.isComplete) {
+            viewModel.playLessonCompleteSound()
+            onComplete()
+        }
+    }
+
+    SessionScreenContent(
+        state = state,
+        onStrokeStart = { offset -> viewModel.onStrokeStart(offset) },
+        onStrokeMove = { offset -> viewModel.onStrokeMove(offset) },
+        onStrokeEnd = { viewModel.onStrokeEnd() },
+        onBack = onBack
+    )
 }
