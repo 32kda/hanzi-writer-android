@@ -28,16 +28,30 @@ object CharacterSetLoader {
             CharacterSetInfo(
                 dirName = dirName,
                 displayName = props?.get("name")?.trim('"') ?: dirName,
-                description = props?.get("description")?.trim('"') ?: ""
+                description = props?.get("description")?.trim('"') ?: "",
+                isBuiltIn = true
             )
         }.sortedBy { it.displayName }
     }
 
+    fun scanCustomSetDir(dir: File): CharacterSetInfo? {
+        val csvFile = File(dir, "${dir.name}.csv")
+        if (!csvFile.exists()) return null
+        val propsFile = File(dir, "${dir.name}_properties.toml")
+        val props = if (propsFile.exists()) {
+            parseSimpleToml(propsFile.readText())
+        } else null
+        return CharacterSetInfo(
+            dirName = dir.name,
+            displayName = props?.get("name")?.trim('"') ?: dir.name,
+            description = props?.get("description")?.trim('"') ?: "",
+            isBuiltIn = false
+        )
+    }
+
     fun loadFromCsv(csvFile: File): List<CharacterSetEntry> {
         if (!csvFile.exists()) return emptyList()
-        return csvFile.readLines()
-            .map { line -> parseLine(line) }
-            .filterNotNull()
+        return csvFile.readLines().mapNotNull { line -> parseLine(line) }
     }
 
     fun loadFromAssets(assets: AssetManager, dirName: String): List<CharacterSetEntry> {
@@ -48,7 +62,7 @@ object CharacterSetLoader {
         } catch (_: Exception) {
             return emptyList()
         }
-        return lines.map { parseLine(it) }.filterNotNull()
+        return lines.mapNotNull { parseLine(it) }
     }
 
     private fun readProperties(assets: AssetManager, dirName: String): Map<String, String>? {

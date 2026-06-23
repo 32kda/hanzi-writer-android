@@ -10,5 +10,6 @@ data class CharacterSetEntry(
 data class CharacterSetInfo(
     val dirName: String,
     val displayName: String,
-    val description: String
+    val description: String,
+    val isBuiltIn: Boolean = false
 )

@@ -1,23 +1,28 @@
 package com.hanziwriter.app.ui.home
 
 import android.content.Context
-import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.hanziwriter.app.data.local.AppPreferences
 import com.hanziwriter.app.data.local.CharacterSetLoader
+import com.hanziwriter.app.data.repository.CharacterSetRepository
 import com.hanziwriter.app.data.repository.ProgressRepository
 import com.hanziwriter.app.domain.algorithm.CharacterSelector
 import com.hanziwriter.app.domain.model.quiz.QuizCard
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
 import javax.inject.Inject
 
 data class HomeUiState(
     val setDisplayName: String = "",
+    val hasValidSet: Boolean = true,
     val streakText: String = "Streak: 0 days",
     val engagementText: String = "Today: 0 min — No activity",
     val nextLearningChars: List<Int> = emptyList(),
@@ -32,10 +37,11 @@ data class HomeUiState(
 class HomeViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val progressRepository: ProgressRepository,
-    savedStateHandle: SavedStateHandle
+    appPreferences: AppPreferences,
+    private val repository: CharacterSetRepository
 ) : ViewModel() {
 
-    private val setName: String = savedStateHandle.get<String>("setName") ?: ""
+    private val setName: String = appPreferences.selectedSetName ?: ""
 
     private val _state = MutableStateFlow(HomeUiState())
     val state: StateFlow<HomeUiState> = _state.asStateFlow()
@@ -53,11 +59,27 @@ class HomeViewModel @Inject constructor(
     }
 
     private suspend fun loadSetInfo() {
-        val sets = CharacterSetLoader.listAvailableSets(context.assets)
-        val match = sets.find { it.dirName == setName }
-        val displayName = match?.displayName ?: setName
+        val setInfo = repository.findSetInfo(setName)
 
-        val entries = CharacterSetLoader.loadFromAssets(context.assets, setName)
+        if (setInfo == null) {
+            _state.value = _state.value.copy(
+                setDisplayName = "No set selected",
+                hasValidSet = false
+            )
+            return
+        }
+
+        val displayName = setInfo.displayName
+
+        val entries = withContext(Dispatchers.IO) {
+            if (setInfo.isBuiltIn) {
+                CharacterSetLoader.loadFromAssets(context.assets, setName)
+            } else {
+                val csvFile = File(repository.getCustomSetsDir(), "$setName/$setName.csv")
+                CharacterSetLoader.loadFromCsv(csvFile)
+            }
+        }
+
         val allProgress = progressRepository.getAllProgressForSet(setName)
         val progressMap = allProgress.associateBy { it.unicode }
 
@@ -75,6 +97,7 @@ class HomeViewModel @Inject constructor(
 
         _state.value = _state.value.copy(
             setDisplayName = displayName,
+            hasValidSet = true,
             nextLearningChars = learnUnicodes,
             nextReviewChars = drillUnicodes,
             nextQuizChars = quizUnicodes,

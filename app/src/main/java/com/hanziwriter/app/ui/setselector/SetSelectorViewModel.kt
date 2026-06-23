@@ -1,14 +1,18 @@
 package com.hanziwriter.app.ui.setselector
 
-import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.hanziwriter.app.data.local.AppPreferences
 import com.hanziwriter.app.data.local.CharacterSetInfo
-import com.hanziwriter.app.data.local.CharacterSetLoader
+import com.hanziwriter.app.data.repository.CharacterSetRepository
+import com.hanziwriter.app.data.repository.ImportPreview
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -18,22 +22,78 @@ data class SetSelectorUiState(
     val isLoading: Boolean = true
 )
 
+sealed class ImportState {
+    data object Idle : ImportState()
+    data class Preview(val preview: ImportPreview, val uri: Uri) : ImportState()
+    data class Importing(val name: String) : ImportState()
+    data class Error(val message: String) : ImportState()
+}
+
 @HiltViewModel
 class SetSelectorViewModel @Inject constructor(
-    @ApplicationContext private val context: Context
+    private val repository: CharacterSetRepository,
+    private val appPreferences: AppPreferences
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(SetSelectorUiState())
     val state: StateFlow<SetSelectorUiState> = _state.asStateFlow()
 
+    private val _importState = MutableStateFlow<ImportState>(ImportState.Idle)
+    val importState: StateFlow<ImportState> = _importState.asStateFlow()
+
+    private val _snackbarEvent = MutableSharedFlow<String>(extraBufferCapacity = 1)
+    val snackbarEvent: SharedFlow<String> = _snackbarEvent.asSharedFlow()
+
     init {
-        loadSets()
+        viewModelScope.launch {
+            repository.sets.collect { sets ->
+                _state.value = SetSelectorUiState(sets = sets, isLoading = false)
+            }
+        }
     }
 
-    private fun loadSets() {
+    fun previewImport(uri: Uri) {
         viewModelScope.launch {
-            val sets = CharacterSetLoader.listAvailableSets(context.assets)
-            _state.value = SetSelectorUiState(sets = sets, isLoading = false)
+            try {
+                val preview = repository.previewImport(uri)
+                _importState.value = ImportState.Preview(preview, uri)
+            } catch (e: Exception) {
+                _importState.value = ImportState.Error(e.message ?: "Import failed")
+            }
+        }
+    }
+
+    fun confirmImport(overwrite: Boolean) {
+        val current = _importState.value as? ImportState.Preview ?: return
+        viewModelScope.launch {
+            _importState.value = ImportState.Importing(current.preview.name)
+            val result = repository.confirmImport(current.uri, overwrite)
+            if (result.isSuccess) {
+                _snackbarEvent.tryEmit("Imported '${current.preview.name}'")
+                _importState.value = ImportState.Idle
+            } else {
+                _importState.value = ImportState.Error(
+                    result.exceptionOrNull()?.message ?: "Import failed"
+                )
+            }
+        }
+    }
+
+    fun dismissImport() {
+        _importState.value = ImportState.Idle
+    }
+
+    fun deleteSet(dirName: String) {
+        viewModelScope.launch {
+            val result = repository.deleteSet(dirName)
+            if (result.isSuccess) {
+                if (dirName == appPreferences.selectedSetName) {
+                    appPreferences.selectedSetName = null
+                }
+                _snackbarEvent.tryEmit("Deleted '$dirName'")
+            } else {
+                _snackbarEvent.tryEmit(result.exceptionOrNull()?.message ?: "Delete failed")
+            }
         }
     }
 }

@@ -40,6 +40,24 @@ fun HomeScreen(
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        if (!state.hasValidSet) {
+            Text(
+                text = "No character set selected",
+                style = MaterialTheme.typography.headlineLarge,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = "The previously selected set is no longer available. Please choose a different set.",
+                style = MaterialTheme.typography.bodyLarge
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+            Button(onClick = onChangeSet) {
+                Text("Choose a Set")
+            }
+            return
+        }
+
         Text(
             text = state.setDisplayName,
             style = MaterialTheme.typography.headlineLarge,
@@ -69,7 +87,6 @@ fun HomeScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Activity cards
         ActivityCard(
             title = "Learn",
             description = "2-3 new characters",

@@ -16,7 +16,9 @@ class AppPreferences @Inject constructor(
     /** The directory name of the last-selected character set, or null on first launch. */
     var selectedSetName: String?
         get() = prefs.getString(KEY_SELECTED_SET, null)
-        set(value) = prefs.edit().putString(KEY_SELECTED_SET, value).commit()
+        set(value) {
+            prefs.edit().putString(KEY_SELECTED_SET, value).apply()
+        }
 
     companion object {
         private const val PREFS_NAME = "hanzi_writer_prefs"
