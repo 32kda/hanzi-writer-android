@@ -1,6 +1,7 @@
 package com.hanziwriter.app.data.local
 
 import android.content.res.AssetManager
+import android.util.Log
 import java.io.File
 import java.io.InputStream
 
@@ -14,24 +15,32 @@ object CharacterSetLoader {
         } catch (_: Exception) {
             emptyList()
         }
+        Log.d("CharacterSetLoader", "listAvailableSets: dirs from assets = $dirs")
 
-        return dirs.mapNotNull { dirName ->
+        val result = dirs.mapNotNull { dirName ->
             val csvPath = "$SETS_ROOT/$dirName/$dirName.csv"
             val exists = try {
                 assets.open(csvPath).use { true }
             } catch (_: Exception) {
                 false
             }
-            if (!exists) return@mapNotNull null
+            if (!exists) {
+                Log.d("CharacterSetLoader", "  skip $dirName: CSV not found")
+                return@mapNotNull null
+            }
 
             val props = readProperties(assets, dirName)
-            CharacterSetInfo(
+            val info = CharacterSetInfo(
                 dirName = dirName,
                 displayName = props?.get("name")?.trim('"') ?: dirName,
                 description = props?.get("description")?.trim('"') ?: "",
                 isBuiltIn = true
             )
+            Log.d("CharacterSetLoader", "  found $dirName -> displayName=${info.displayName}")
+            info
         }.sortedBy { it.displayName }
+        Log.d("CharacterSetLoader", "listAvailableSets: result size=${result.size}")
+        return result
     }
 
     fun scanCustomSetDir(dir: File): CharacterSetInfo? {

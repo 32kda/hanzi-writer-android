@@ -1,9 +1,11 @@
 package com.hanziwriter.app.ui.setselector
 
 import android.net.Uri
+import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -11,11 +13,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsTopHeight
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
@@ -35,6 +37,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -55,6 +58,13 @@ fun SetSelectorScreen(
     val importState by viewModel.importState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
+    val composeCount = remember { java.util.concurrent.atomic.AtomicInteger(0) }
+    SideEffect {
+        val n = composeCount.incrementAndGet()
+        val setsInfo = state.sets.joinToString(",") { it.dirName }
+        Log.d("SetSelectorScreen", "recompose #$n: sets=[$setsInfo] size=${state.sets.size} isLoading=${state.isLoading} importState=$importState")
+    }
+
     val importLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri: Uri? ->
@@ -64,8 +74,17 @@ fun SetSelectorScreen(
     }
 
     LaunchedEffect(Unit) {
+        Log.d("SetSelectorScreen", "snackbar LaunchedEffect started")
         viewModel.snackbarEvent.collect { message ->
+            Log.d("SetSelectorScreen", "snackbar event: $message")
             snackbarHostState.showSnackbar(message)
+            Log.d("SetSelectorScreen", "snackbar shown: $message")
+        }
+    }
+
+    if (state.sets.isNotEmpty()) {
+        SideEffect {
+            Log.d("SetSelectorScreen", "state.sets.size=${state.sets.size} first=${state.sets.firstOrNull()?.dirName} last=${state.sets.lastOrNull()?.dirName}")
         }
     }
 
@@ -84,9 +103,9 @@ fun SetSelectorScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .padding(horizontal = 16.dp)
-                .windowInsetsTopHeight(WindowInsets.statusBars)
                 .padding(top = 16.dp)
         ) {
+            Spacer(Modifier.windowInsetsTopHeight(WindowInsets.statusBars))
             Text(
                 text = "Choose a Character Set",
                 style = MaterialTheme.typography.headlineMedium,
@@ -104,9 +123,17 @@ fun SetSelectorScreen(
                 )
             } else {
                 LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(bottom = 80.dp)
                 ) {
-                    items(state.sets, key = { it.dirName }) { set ->
+                    itemsIndexed(
+                        items = state.sets,
+                        key = { _, set -> set.dirName }
+                    ) { idx, set ->
+                        SideEffect {
+                            Log.d("SetSelectorScreen", "  LazyColumn idx=$idx dirName=${set.dirName}")
+                        }
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -114,7 +141,9 @@ fun SetSelectorScreen(
                             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                         ) {
                             Row(
-                                modifier = Modifier.padding(start = 16.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(start = 16.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Column(
@@ -172,7 +201,8 @@ fun SetSelectorScreen(
                     }
                 )
             } else {
-                LaunchedEffect(imp) {
+                LaunchedEffect(imp.preview.name, imp.uri.toString()) {
+                    Log.d("SetSelectorScreen", "auto-confirm import: ${imp.preview.name}")
                     viewModel.confirmImport(overwrite = false)
                 }
             }

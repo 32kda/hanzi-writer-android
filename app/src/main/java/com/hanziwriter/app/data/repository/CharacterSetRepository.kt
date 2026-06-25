@@ -2,6 +2,7 @@ package com.hanziwriter.app.data.repository
 
 import android.content.Context
 import android.net.Uri
+import android.util.Log
 import com.hanziwriter.app.data.local.CharacterSetInfo
 import com.hanziwriter.app.data.local.CharacterSetLoader
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -32,6 +33,7 @@ class CharacterSetRepository @Inject constructor(
 
     init {
         builtInSets = CharacterSetLoader.listAvailableSets(context.assets)
+        Log.d("CharacterSetRepo", "init: builtInSets=${builtInSets.size}")
         refresh()
     }
 
@@ -39,7 +41,9 @@ class CharacterSetRepository @Inject constructor(
 
     fun refresh() {
         val customSets = scanCustomSets()
-        _sets.value = (builtInSets + customSets).sortedBy { it.displayName }
+        val merged = (builtInSets + customSets).sortedBy { it.displayName }
+        Log.d("CharacterSetRepo", "refresh: builtInSets=${builtInSets.size} customSets=${customSets.size} merged=${merged.size}")
+        _sets.value = merged
     }
 
     fun findSetInfo(dirName: String): CharacterSetInfo? {

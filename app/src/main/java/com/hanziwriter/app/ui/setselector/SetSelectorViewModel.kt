@@ -1,6 +1,7 @@
 package com.hanziwriter.app.ui.setselector
 
 import android.net.Uri
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.hanziwriter.app.data.local.AppPreferences
@@ -44,11 +45,25 @@ class SetSelectorViewModel @Inject constructor(
     private val _snackbarEvent = MutableSharedFlow<String>(extraBufferCapacity = 1)
     val snackbarEvent: SharedFlow<String> = _snackbarEvent.asSharedFlow()
 
+    private var collectCount = 0
+
     init {
+        Log.d("SetSelectorVM", "init: viewModel=${this.hashCode()}")
         viewModelScope.launch {
+            Log.d("SetSelectorVM", "collect started")
             repository.sets.collect { sets ->
-                _state.value = SetSelectorUiState(sets = sets, isLoading = false)
+                collectCount++
+                val names = sets.joinToString { it.dirName }
+                val prev = _state.value.sets.joinToString { it.dirName }
+                Log.d("SetSelectorVM", "collect #$collectCount: ${sets.size} sets [$names] prev=[$prev] isLoading=${_state.value.isLoading}")
+                val newState = SetSelectorUiState(sets = sets, isLoading = false)
+                val isSame = _state.value == newState
+                Log.d("SetSelectorVM", "collect #$collectCount: _state.value==newState=$isSame oldSize=${_state.value.sets.size} newSize=${sets.size}")
+                if (!isSame) {
+                    _state.value = newState
+                }
             }
+            Log.d("SetSelectorVM", "collect ended")
         }
     }
 
