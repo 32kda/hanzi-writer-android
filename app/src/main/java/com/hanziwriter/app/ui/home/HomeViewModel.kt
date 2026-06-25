@@ -8,6 +8,7 @@ import com.hanziwriter.app.data.local.CharacterSetLoader
 import com.hanziwriter.app.data.repository.CharacterSetRepository
 import com.hanziwriter.app.data.repository.ProgressRepository
 import com.hanziwriter.app.domain.algorithm.CharacterSelector
+import com.hanziwriter.app.domain.algorithm.ProgressInfo
 import com.hanziwriter.app.domain.model.quiz.QuizCard
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -80,9 +81,6 @@ class HomeViewModel @Inject constructor(
             }
         }
 
-        val allProgress = progressRepository.getAllProgressForSet(setName)
-        val progressMap = allProgress.associateBy { it.unicode }
-
         val cards = entries.map { entry ->
             QuizCard(
                 character = entry.character,
@@ -91,9 +89,13 @@ class HomeViewModel @Inject constructor(
             )
         }
 
-        val learnUnicodes = CharacterSelector.selectForLearn(cards, progressMap)
-        val drillUnicodes = CharacterSelector.selectForDrill(allProgress, cards)
-        val quizUnicodes = CharacterSelector.selectForQuiz(allProgress, cards)
+        val allUnicodes = cards.map { it.character.first().code }
+        val allProgress = progressRepository.getAllProgressForSet(setName)
+        val progressMap = allProgress.associate { it.unicode to ProgressInfo(it.lastPracticed, it.timesPracticed) }
+
+        val learnUnicodes = CharacterSelector.select(allUnicodes, progressMap, count = 2)
+        val drillUnicodes = CharacterSelector.select(allUnicodes, progressMap, count = 5)
+        val quizUnicodes = CharacterSelector.select(allUnicodes, progressMap, count = 10)
 
         _state.value = _state.value.copy(
             setDisplayName = displayName,

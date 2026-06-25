@@ -203,8 +203,8 @@ fun NavGraph(
 
             QuizScreen(
                 unicodes = unicodes,
-                onComplete = {
-                    navController.navigate(Routes.results("quiz", 80))
+                onComplete = { score ->
+                    navController.navigate(Routes.results("quiz", score))
                 },
                 onBack = { navController.popBackStack() }
             )

@@ -9,7 +9,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 @Composable
 fun QuizScreen(
     unicodes: List<Int>,
-    onComplete: () -> Unit,
+    onComplete: (Int) -> Unit,
     onBack: () -> Unit,
     viewModel: QuizSessionViewModel = hiltViewModel()
 ) {
@@ -21,8 +21,12 @@ fun QuizScreen(
 
     LaunchedEffect(state.isComplete) {
         if (state.isComplete) {
+            viewModel.endSession()
             viewModel.playLessonCompleteSound()
-            onComplete()
+            val totalCorrect = state.sessionResults.values.sumOf { it.correctAttempts }
+            val totalAttempts = state.sessionResults.values.sumOf { it.totalAttempts }
+            val score = if (totalAttempts > 0) (totalCorrect * 100 / totalAttempts) else 0
+            onComplete(score)
         }
     }
 

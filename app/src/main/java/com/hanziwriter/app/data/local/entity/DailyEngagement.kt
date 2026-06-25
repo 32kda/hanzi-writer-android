@@ -11,6 +11,5 @@ data class DailyEngagement(
     val activitiesCompleted: String,
     val charactersLearned: Int,
     val charactersDrilled: Int,
-    val charactersQuizzed: Int,
-    val quizScore: Int? = null
+    val charactersQuizzed: Int
 )

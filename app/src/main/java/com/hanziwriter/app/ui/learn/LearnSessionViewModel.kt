@@ -1,5 +1,6 @@
 package com.hanziwriter.app.ui.learn
 
+import com.hanziwriter.app.data.local.AppPreferences
 import com.hanziwriter.app.data.repository.CharacterRepository
 import com.hanziwriter.app.data.repository.ProgressRepository
 import com.hanziwriter.app.domain.model.character.HintLevel
@@ -12,8 +13,11 @@ import javax.inject.Inject
 class LearnSessionViewModel @Inject constructor(
     characterRepository: CharacterRepository,
     progressRepository: ProgressRepository,
-    soundManager: SoundManager
-) : BaseSessionViewModel(characterRepository, progressRepository, soundManager) {
+    soundManager: SoundManager,
+    appPreferences: AppPreferences
+) : BaseSessionViewModel(characterRepository, progressRepository, soundManager, appPreferences) {
+
+    override val sessionType: String = "learn"
 
     override fun buildSessionPlan(unicodes: List<Int>): List<CharacterRound> {
         return unicodes.flatMap { u ->

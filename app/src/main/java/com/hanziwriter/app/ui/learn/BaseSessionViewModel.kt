@@ -2,8 +2,10 @@ package com.hanziwriter.app.ui.learn
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.hanziwriter.app.data.local.AppPreferences
 import com.hanziwriter.app.data.repository.CharacterRepository
 import com.hanziwriter.app.data.repository.ProgressRepository
+import com.hanziwriter.app.data.repository.SessionCharacterStats
 import com.hanziwriter.app.domain.model.character.Character
 import com.hanziwriter.app.domain.model.character.HintLevel
 import com.hanziwriter.app.domain.model.quiz.CharacterRound
@@ -14,9 +16,15 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.time.LocalDate
+
+data class CharacterResult(
+    val totalAttempts: Int,
+    val correctAttempts: Int
+)
 
 data class LearnUiState(
-    val character: com.hanziwriter.app.domain.model.character.Character? = null,
+    val character: Character? = null,
     val quiz: Quiz? = null,
     val renderState: RenderState? = null,
     val isLoading: Boolean = true,
@@ -26,13 +34,15 @@ data class LearnUiState(
     val currentUserPoints: List<androidx.compose.ui.geometry.Offset> = emptyList(),
     val isComplete: Boolean = false,
     val currentRoundIndex: Int = 0,
-    val totalRounds: Int = 0
+    val totalRounds: Int = 0,
+    val sessionResults: Map<Int, CharacterResult> = emptyMap()
 )
 
 abstract class BaseSessionViewModel(
     protected val characterRepository: CharacterRepository,
     protected val progressRepository: ProgressRepository,
-    protected val soundManager: SoundManager
+    protected val soundManager: SoundManager,
+    protected val appPreferences: AppPreferences
 ) : ViewModel() {
 
     protected val _state = MutableStateFlow(LearnUiState())
@@ -41,13 +51,23 @@ abstract class BaseSessionViewModel(
     protected var sessionPlan: List<CharacterRound> = emptyList()
     private var currentUnicode: Int = 0
 
+    private val sessionStats = mutableMapOf<Int, SessionCharacterStats>()
+    private var consecutiveCorrect: Int = 0
+    private var sessionStartTime: Long = 0L
+
     abstract fun buildSessionPlan(unicodes: List<Int>): List<CharacterRound>
+
+    abstract val sessionType: String
 
     fun startSession(unicodes: List<Int>) {
         sessionPlan = buildSessionPlan(unicodes)
+        sessionStats.clear()
+        consecutiveCorrect = 0
+        sessionStartTime = System.currentTimeMillis()
         _state.value = _state.value.copy(
             currentRoundIndex = 0,
-            totalRounds = sessionPlan.size
+            totalRounds = sessionPlan.size,
+            sessionResults = emptyMap()
         )
         if (sessionPlan.isNotEmpty()) {
             loadCharacterRound(0)
@@ -59,6 +79,7 @@ abstract class BaseSessionViewModel(
     private fun loadCharacterRound(roundIndex: Int) {
         val round = sessionPlan.getOrNull(roundIndex) ?: return
         currentUnicode = round.unicode
+        consecutiveCorrect = 0
         viewModelScope.launch {
             _state.value = _state.value.copy(
                 isLoading = true,
@@ -146,7 +167,12 @@ abstract class BaseSessionViewModel(
             _state.value = _state.value.copy(currentRoundIndex = nextIndex)
             loadCharacterRound(nextIndex)
         } else {
-            _state.value = _state.value.copy(isComplete = true)
+            _state.value = _state.value.copy(
+                isComplete = true,
+                sessionResults = sessionStats.mapValues { (_, stats) ->
+                    CharacterResult(stats.totalAttempts, stats.correctAttempts)
+                }
+            )
         }
     }
 
@@ -174,11 +200,42 @@ abstract class BaseSessionViewModel(
         val quiz = _state.value.quiz ?: return
         val unicode = currentUnicode
         quiz.endUserStroke { result ->
-            viewModelScope.launch {
-                progressRepository.saveStrokeAttempt(unicode, result.isCorrect, System.currentTimeMillis())
+            val stats = sessionStats.getOrPut(unicode) {
+                SessionCharacterStats(unicode, 0, 0)
+            }
+            if (result.isCorrect) {
+                consecutiveCorrect++
+                sessionStats[unicode] = stats.copy(
+                    totalAttempts = stats.totalAttempts + 1,
+                    correctAttempts = stats.correctAttempts + 1
+                )
+            } else {
+                consecutiveCorrect = 0
+                sessionStats[unicode] = stats.copy(
+                    totalAttempts = stats.totalAttempts + 1
+                )
             }
         }
         _state.value = _state.value.copy(currentUserPoints = emptyList())
+    }
+
+    fun endSession() {
+        val elapsedMs = System.currentTimeMillis() - sessionStartTime
+        val minutes = (elapsedMs / 60_000).toInt().coerceAtLeast(1)
+        val today = LocalDate.now().toString()
+        val setName = appPreferences.selectedSetName ?: ""
+        val now = System.currentTimeMillis()
+
+        viewModelScope.launch {
+            progressRepository.endSession(
+                setName = setName,
+                characterStats = sessionStats.values.toList(),
+                activityType = sessionType,
+                sessionMinutes = minutes,
+                date = today,
+                timestamp = now
+            )
+        }
     }
 
     fun playLessonCompleteSound() {

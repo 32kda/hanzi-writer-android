@@ -56,7 +56,7 @@ fun SessionScreenContent(
     val referenceStrokes = if (state.renderState != null) {
         character.strokes.map { stroke ->
             val key = stroke.strokeNum.toString()
-            val mainState = state.renderState!!.mainStrokes[key]
+            val mainState = state.renderState.mainStrokes[key]
             DrawableStroke(
                 svgPath = stroke.path,
                 medianPoints = stroke.points,
@@ -139,6 +139,7 @@ fun LearnScreen(
 
     LaunchedEffect(state.isComplete) {
         if (state.isComplete) {
+            viewModel.endSession()
             viewModel.playLessonCompleteSound()
             onComplete()
         }

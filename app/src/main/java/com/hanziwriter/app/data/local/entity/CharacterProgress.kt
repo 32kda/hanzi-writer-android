@@ -16,14 +16,7 @@ import androidx.room.PrimaryKey
 data class CharacterProgress(
     @PrimaryKey val unicode: Int,
     val accuracy: Double,
-    val totalAttempts: Int,
-    val correctAttempts: Int,
-    val consecutiveCorrect: Int,
     val lastPracticed: Long,
-    val lastResult: String,
-    val averageResponseTimeMs: Long,
-    val hintUsageCount: Int,
-    val introducedDate: Long,
-    val isLearned: Boolean,
+    val timesPracticed: Int,
     val activeSetName: String
 )

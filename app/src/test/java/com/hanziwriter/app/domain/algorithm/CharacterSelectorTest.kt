@@ -1,176 +1,138 @@
 package com.hanziwriter.app.domain.algorithm
 
-import com.hanziwriter.app.data.local.entity.CharacterProgress
-import com.hanziwriter.app.domain.model.quiz.QuizCard
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class CharacterSelectorTest {
 
-    private val cards = listOf(
-        QuizCard("的", "de", "possessive"),
-        QuizCard("一", "yī", "one"),
-        QuizCard("是", "shì", "yes"),
-        QuizCard("不", "bù", "no"),
-        QuizCard("了", "le", "particle")
-    )
-
-    private fun progress(
-        unicode: Int,
-        totalAttempts: Int = 0,
-        accuracy: Double = 0.0,
-        lastPracticed: Long = 0L,
-        lastResult: String = "NONE"
-    ) = CharacterProgress(
-        unicode = unicode,
-        accuracy = accuracy,
-        totalAttempts = totalAttempts,
-        correctAttempts = if (totalAttempts > 0) (totalAttempts * accuracy).toInt() else 0,
-        consecutiveCorrect = 0,
-        lastPracticed = lastPracticed,
-        lastResult = lastResult,
-        averageResponseTimeMs = 0L,
-        hintUsageCount = 0,
-        introducedDate = 0L,
-        isLearned = false,
-        activeSetName = ""
-    )
+    private fun progressInfo(timesPracticed: Int, lastPracticed: Long): ProgressInfo =
+        ProgressInfo(lastPracticed, timesPracticed)
 
     @Test
-    fun `selectForLearn returns up to 2 new characters when no progress exists`() {
-        val result = CharacterSelector.selectForLearn(cards, emptyMap())
-        assertEquals(2, result.size)
-        assertEquals('的'.code, result[0])
-        assertEquals('一'.code, result[1])
-    }
-
-    @Test
-    fun `selectForLearn skips characters with 3 or more attempts`() {
-        val progress = mapOf(
-            '的'.code to progress(unicode = '的'.code, totalAttempts = 3),
-            '一'.code to progress(unicode = '一'.code, totalAttempts = 2)
-        )
-        val result = CharacterSelector.selectForLearn(cards, progress)
-        assertEquals(2, result.size)
-        assertEquals('一'.code, result[0])
-        assertEquals('是'.code, result[1])
-    }
-
-    @Test
-    fun `selectForLearn returns fewer than 2 when insufficient new cards`() {
-        val progress = mapOf(
-            '的'.code to progress(unicode = '的'.code, totalAttempts = 5),
-            '一'.code to progress(unicode = '一'.code, totalAttempts = 4),
-            '是'.code to progress(unicode = '是'.code, totalAttempts = 3),
-            '不'.code to progress(unicode = '不'.code, totalAttempts = 3),
-            '了'.code to progress(unicode = '了'.code, totalAttempts = 3)
-        )
-        val result = CharacterSelector.selectForLearn(cards, progress)
+    fun `select returns empty for empty unicodes`() {
+        val result = CharacterSelector.select(emptyList(), emptyMap(), count = 5)
         assertTrue(result.isEmpty())
     }
 
     @Test
-    fun `selectForLearn returns only unicode values from available cards`() {
-        val result = CharacterSelector.selectForLearn(cards, emptyMap())
-        result.forEach { unicode ->
-            assertTrue(cards.any { it.character.first().code == unicode })
+    fun `select returns empty for zero count`() {
+        val unicodes = listOf(1, 2, 3)
+        val result = CharacterSelector.select(unicodes, emptyMap(), count = 0)
+        assertTrue(result.isEmpty())
+    }
+
+    @Test
+    fun `select returns all when count exceeds size`() {
+        val unicodes = listOf(1, 2, 3)
+        val result = CharacterSelector.select(unicodes, emptyMap(), count = 10)
+        assertEquals(3, result.size)
+        assertTrue(result.containsAll(unicodes))
+    }
+
+    @Test
+    fun `select picks from lowest score first`() {
+        val now = System.currentTimeMillis()
+        val oneDayMs = 86_400_000L
+
+        val unicodes = listOf(1, 2, 3, 4, 5)
+        val progress = mapOf(
+            1 to progressInfo(timesPracticed = 5, lastPracticed = now),                    // recently practiced, score ~5
+            2 to progressInfo(timesPracticed = 0, lastPracticed = now - 30 * oneDayMs),     // days/14 ≈ 2.14, score = 0
+            3 to progressInfo(timesPracticed = 1, lastPracticed = now - 7 * oneDayMs),      // days/14 = 0.5, score = 0.5
+            4 to progressInfo(timesPracticed = 3, lastPracticed = now - 14 * oneDayMs),     // days/14 = 1, score = 2
+            5 to progressInfo(timesPracticed = 10, lastPracticed = now - 140 * oneDayMs)    // days/14 = 10, score = 0
+        )
+        // Scores: 1→~5, 2→0, 3→0.5, 4→2, 5→0
+        // Sorted: 0 (chars 2,5), 0.5 (char 3), 2 (char 4), 5 (char 1)
+        // Selecting 2 should give chars 2 and 5
+
+        val result = CharacterSelector.select(unicodes, progress, count = 2)
+        assertEquals(2, result.size)
+        assertTrue(result.containsAll(listOf(2, 5)))
+    }
+
+    @Test
+    fun `select new characters get score zero`() {
+        val now = System.currentTimeMillis()
+
+        val unicodes = listOf(1, 2, 3)
+        val progress = mapOf(
+            1 to progressInfo(timesPracticed = 10, lastPracticed = now) // score ~10, practiced recently
+        )
+        // Scores: 1→~10, 2→0 (new), 3→0 (new)
+        // Selecting 2 should give chars 2 and 3
+
+        val result = CharacterSelector.select(unicodes, progress, count = 2)
+        assertEquals(2, result.size)
+        assertEquals(setOf(2, 3), result.toSet())
+    }
+
+    @Test
+    fun `select respects histogram boundary from spec example`() {
+        // Example from spec: N=10, score 0→3, score 1→2, score 3→20, score 4→15
+        // Result: all of 0(3) + all of 1(2) = 5, then 5 random from score 3
+        val now = System.currentTimeMillis()
+        val oneDayMs = 86_400_000L
+
+        // score 0: timesPracticed=0, old lastPracticed → days/14 large, score=0
+        val score0 = listOf(1, 2, 3).associateWith {
+            progressInfo(timesPracticed = 0, lastPracticed = now - 100 * oneDayMs)
         }
+        // score 1: timesPracticed=1, lastPracticed=now → score=1
+        val score1 = listOf(4, 5).associateWith {
+            progressInfo(timesPracticed = 1, lastPracticed = now)
+        }
+        // score 3: timesPracticed=3, lastPracticed=now → score=3
+        val score3 = (10..29).associateWith {
+            progressInfo(timesPracticed = 3, lastPracticed = now)
+        }
+        // score 4: timesPracticed=4, lastPracticed=now → score=4
+        val score4 = (30..44).associateWith {
+            progressInfo(timesPracticed = 4, lastPracticed = now)
+        }
+
+        val progress = score0 + score1 + score3 + score4
+        val unicodes = progress.keys.toList()
+
+        val result = CharacterSelector.select(unicodes, progress, count = 10)
+        assertEquals(10, result.size)
+        // Should contain all of score 0 and score 1 characters
+        assertTrue(result.containsAll(listOf(1, 2, 3, 4, 5)))
+        // Remaining 5 should come from score 3 group
+        val fromScore3 = result.filter { it in 10..29 }
+        assertEquals(5, fromScore3.size)
+        // Should not contain any from score 4
+        val fromScore4 = result.filter { it in 30..44 }
+        assertTrue(fromScore4.isEmpty())
     }
 
     @Test
-    fun `selectForDrill returns characters sorted by priority`() {
-        val now = System.currentTimeMillis()
-        val progressList = listOf(
-            progress(
-                unicode = '的'.code, totalAttempts = 5, accuracy = 0.2,
-                lastPracticed = now, lastResult = "WRONG"
-            ),
-            progress(
-                unicode = '一'.code, totalAttempts = 5, accuracy = 0.9,
-                lastPracticed = now, lastResult = "CORRECT"
-            )
-        )
-        val result = CharacterSelector.selectForDrill(progressList, count = 2)
-        assertEquals(2, result.size)
-        assertEquals('的'.code, result[0])
-        assertEquals('一'.code, result[1])
+    fun `select deterministic when all scores are same`() {
+        val unicodes = (1..20).toList()
+        val result = CharacterSelector.select(unicodes, emptyMap(), count = 10)
+        assertEquals(10, result.size)
+        assertTrue(result.all { it in unicodes })
     }
 
     @Test
-    fun `selectForDrill respects count parameter`() {
-        val progressList = listOf(
-            progress(unicode = '的'.code, totalAttempts = 5),
-            progress(unicode = '一'.code, totalAttempts = 5),
-            progress(unicode = '是'.code, totalAttempts = 5)
-        )
-        val result = CharacterSelector.selectForDrill(progressList, count = 2)
-        assertEquals(2, result.size)
+    fun `select count equals input size when smaller than count`() {
+        val unicodes = listOf(1, 2, 3)
+        val result = CharacterSelector.select(unicodes, emptyMap(), count = 5)
+        assertEquals(3, result.size)
     }
 
     @Test
-    fun `selectForDrill excludes characters with fewer than 3 attempts`() {
-        val progressList = listOf(
-            progress(unicode = '的'.code, totalAttempts = 2),
-            progress(unicode = '一'.code, totalAttempts = 5, accuracy = 0.8)
-        )
-        val result = CharacterSelector.selectForDrill(progressList, count = 5)
-        assertEquals(1, result.size)
-        assertEquals('一'.code, result[0])
-    }
-
-    @Test
-    fun `selectForQuiz filters by lastPracticed older than 24h`() {
-        val now = System.currentTimeMillis()
-        val oneDayMs = 86_400_000L
-        val progressList = listOf(
-            progress(unicode = '的'.code, totalAttempts = 5, accuracy = 0.5, lastPracticed = now - 2 * oneDayMs),
-            progress(unicode = '一'.code, totalAttempts = 5, accuracy = 0.5, lastPracticed = now)
-        )
-        val result = CharacterSelector.selectForQuiz(progressList, count = 5)
-        assertEquals(1, result.size)
-        assertEquals('的'.code, result[0])
-    }
-
-    @Test
-    fun `selectForQuiz respects count parameter`() {
+    fun `select score calculation with days since practice`() {
         val now = System.currentTimeMillis()
         val oneDayMs = 86_400_000L
-        val progressList = listOf(
-            progress(unicode = '的'.code, totalAttempts = 3, accuracy = 0.5, lastPracticed = now - 2 * oneDayMs, lastResult = "WRONG"),
-            progress(unicode = '一'.code, totalAttempts = 3, accuracy = 0.9, lastPracticed = now - 2 * oneDayMs, lastResult = "CORRECT")
-        )
-        val result = CharacterSelector.selectForQuiz(progressList, count = 1)
-        assertEquals(1, result.size)
-    }
 
-    @Test
-    fun `selectForQuiz returns empty when all characters practiced less than 24h ago`() {
-        val now = System.currentTimeMillis()
-        val progressList = listOf(
-            progress(unicode = '的'.code, totalAttempts = 3, lastPracticed = now)
-        )
-        val result = CharacterSelector.selectForQuiz(progressList, count = 10)
-        assertTrue(result.isEmpty())
-    }
-
-    @Test
-    fun `selectForDrill returns empty when no character has 3+ attempts`() {
-        val progressList = listOf(
-            progress(unicode = '的'.code, totalAttempts = 2)
-        )
-        val result = CharacterSelector.selectForDrill(progressList, count = 5)
-        assertTrue(result.isEmpty())
-    }
-
-    @Test
-    fun `selectForLearn returns only new characters when mixed progress exists`() {
+        // Character practiced once, 14 days ago → daysSince/14 = 1, score = max(0, 1-1) = 0
+        val unicodes = listOf(42)
         val progress = mapOf(
-            '的'.code to progress(unicode = '的'.code, totalAttempts = 3)
+            42 to progressInfo(timesPracticed = 1, lastPracticed = now - 14 * oneDayMs)
         )
-        val result = CharacterSelector.selectForLearn(cards, progress)
-        assertEquals(2, result.size)
-        assertEquals('一'.code, result[0])
-        assertEquals('是'.code, result[1])
+        val result = CharacterSelector.select(unicodes, progress, count = 1)
+        assertEquals(listOf(42), result)
     }
 }

@@ -8,39 +8,95 @@ import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 import javax.inject.Singleton
 
+data class SessionCharacterStats(
+    val unicode: Int,
+    val totalAttempts: Int,
+    val correctAttempts: Int
+)
+
 @Singleton
 class ProgressRepository @Inject constructor(
     private val progressDao: ProgressDao
 ) {
-    suspend fun saveStrokeAttempt(unicode: Int, result: Boolean, timestamp: Long) {
-        val existing = progressDao.getProgress(unicode)
-        val updated = if (existing != null) {
-            existing.copy(
-                totalAttempts = existing.totalAttempts + 1,
-                correctAttempts = existing.correctAttempts + (if (result) 1 else 0),
-                consecutiveCorrect = if (result) existing.consecutiveCorrect + 1 else 0,
-                lastPracticed = timestamp,
-                lastResult = if (result) "CORRECT" else "WRONG",
-                accuracy = (existing.correctAttempts + (if (result) 1 else 0)).toDouble() /
-                        (existing.totalAttempts + 1)
+    suspend fun endSession(
+        setName: String,
+        characterStats: List<SessionCharacterStats>,
+        activityType: String,
+        sessionMinutes: Int,
+        date: String,
+        timestamp: Long
+    ) {
+        val progressList = characterStats.map { stats ->
+            val existing = progressDao.getProgress(stats.unicode)
+            val sessionAccuracy = if (stats.totalAttempts > 0) {
+                stats.correctAttempts.toDouble() / stats.totalAttempts
+            } else 0.0
+
+            if (existing != null) {
+                val newTimesPracticed = existing.timesPracticed + 1
+                val newAccuracy = (existing.accuracy * existing.timesPracticed + sessionAccuracy) / newTimesPracticed
+                existing.copy(
+                    accuracy = newAccuracy,
+                    lastPracticed = timestamp,
+                    timesPracticed = newTimesPracticed
+                )
+            } else {
+                CharacterProgress(
+                    unicode = stats.unicode,
+                    accuracy = sessionAccuracy,
+                    lastPracticed = timestamp,
+                    timesPracticed = 1,
+                    activeSetName = setName
+                )
+            }
+        }
+
+        val engagement = progressDao.getDailyEngagement(date)
+        val updatedEngagement = if (engagement != null) {
+            val newMinutes = engagement.totalTimeMinutes + sessionMinutes
+            engagement.copy(
+                totalTimeMinutes = newMinutes,
+                engagementLevel = if (newMinutes >= 20) "STRONG" else if (newMinutes >= 10) "MODERATE" else "LIGHT",
+                activitiesCompleted = if (engagement.activitiesCompleted.contains(activityType))
+                    engagement.activitiesCompleted else engagement.activitiesCompleted + ",$activityType",
+                charactersLearned = engagement.charactersLearned + if (activityType == "learn") characterStats.size else 0,
+                charactersDrilled = engagement.charactersDrilled + if (activityType == "drill") characterStats.size else 0,
+                charactersQuizzed = engagement.charactersQuizzed + if (activityType == "quiz") characterStats.size else 0
             )
         } else {
-            CharacterProgress(
-                unicode = unicode,
-                accuracy = if (result) 1.0 else 0.0,
-                totalAttempts = 1,
-                correctAttempts = if (result) 1 else 0,
-                consecutiveCorrect = if (result) 1 else 0,
-                lastPracticed = timestamp,
-                lastResult = if (result) "CORRECT" else "WRONG",
-                averageResponseTimeMs = 0,
-                hintUsageCount = 0,
-                introducedDate = timestamp,
-                isLearned = false,
-                activeSetName = "hsk1_en"
+            DailyEngagement(
+                date = date,
+                totalTimeMinutes = sessionMinutes,
+                engagementLevel = if (sessionMinutes >= 20) "STRONG" else if (sessionMinutes >= 10) "MODERATE" else "LIGHT",
+                activitiesCompleted = activityType,
+                charactersLearned = if (activityType == "learn") characterStats.size else 0,
+                charactersDrilled = if (activityType == "drill") characterStats.size else 0,
+                charactersQuizzed = if (activityType == "quiz") characterStats.size else 0
             )
         }
-        progressDao.upsertProgress(updated)
+
+        val existingStreak = progressDao.getStreak()
+        val streak = if (existingStreak != null) {
+            val newStreak = if (existingStreak.lastActiveDate == date) {
+                existingStreak.currentStreak
+            } else {
+                existingStreak.currentStreak + 1
+            }
+            existingStreak.copy(
+                currentStreak = newStreak,
+                longestStreak = maxOf(existingStreak.longestStreak, newStreak),
+                lastActiveDate = date
+            )
+        } else {
+            StreakRecord(
+                id = 1,
+                currentStreak = 1,
+                longestStreak = 1,
+                lastActiveDate = date
+            )
+        }
+
+        progressDao.saveSessionResult(progressList, updatedEngagement, streak)
     }
 
     suspend fun getProgress(unicode: Int): CharacterProgress? =
@@ -52,69 +108,11 @@ class ProgressRepository @Inject constructor(
     fun observeAllProgressForSet(setName: String): Flow<List<CharacterProgress>> =
         progressDao.observeAllProgressForSet(setName)
 
-    suspend fun getLearnedCount(setName: String): Int =
-        progressDao.getLearnedCount(setName)
-
-    suspend fun getTotalPracticedCount(setName: String): Int =
-        progressDao.getTotalPracticedCount(setName)
-
-    // Daily engagement
-
-    suspend fun addActivity(date: String, type: String, minutes: Int) {
-        val existing = progressDao.getDailyEngagement(date)
-        if (existing != null) {
-            val updated = existing.copy(
-                totalTimeMinutes = existing.totalTimeMinutes + minutes,
-                activitiesCompleted = if (existing.activitiesCompleted.contains(type))
-                    existing.activitiesCompleted else "$type,${existing.activitiesCompleted}"
-            )
-            progressDao.upsertDailyEngagement(updated)
-        } else {
-            progressDao.upsertDailyEngagement(
-                DailyEngagement(
-                    date = date,
-                    totalTimeMinutes = minutes,
-                    engagementLevel = if (minutes >= 20) "STRONG" else if (minutes >= 10) "MODERATE" else "LIGHT",
-                    activitiesCompleted = type,
-                    charactersLearned = 0,
-                    charactersDrilled = 0,
-                    charactersQuizzed = 0
-                )
-            )
-        }
-    }
+    suspend fun getStreak(): StreakRecord? = progressDao.getStreak()
 
     suspend fun getTotalMinutesForDate(date: String): Int =
         progressDao.getTotalMinutesForDate(date)
 
     suspend fun getRecentEngagements(): List<DailyEngagement> =
         progressDao.getRecentEngagements()
-
-    // Streak
-
-    suspend fun getStreak(): StreakRecord? = progressDao.getStreak()
-
-    suspend fun updateStreak(date: String) {
-        val existing = progressDao.getStreak()
-        val updated = if (existing != null) {
-            val newStreak = if (existing.lastActiveDate == date) {
-                existing.currentStreak
-            } else {
-                existing.currentStreak + 1
-            }
-            existing.copy(
-                currentStreak = newStreak,
-                longestStreak = maxOf(existing.longestStreak, newStreak),
-                lastActiveDate = date
-            )
-        } else {
-            StreakRecord(
-                id = 1,
-                currentStreak = 1,
-                longestStreak = 1,
-                lastActiveDate = date
-            )
-        }
-        progressDao.upsertStreak(updated)
-    }
 }

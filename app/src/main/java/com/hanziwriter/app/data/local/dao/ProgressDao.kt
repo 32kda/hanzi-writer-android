@@ -28,20 +28,6 @@ interface ProgressDao {
     @Query("SELECT * FROM character_progress WHERE activeSetName = :setName")
     fun observeAllProgressForSet(setName: String): Flow<List<CharacterProgress>>
 
-    @Query("SELECT COUNT(*) FROM character_progress WHERE isLearned = 1 AND activeSetName = :setName")
-    suspend fun getLearnedCount(setName: String): Int
-
-    @Query("SELECT COUNT(*) FROM character_progress WHERE activeSetName = :setName")
-    suspend fun getTotalPracticedCount(setName: String): Int
-
-    @Query("""
-        SELECT * FROM character_progress 
-        WHERE activeSetName = :setName 
-        ORDER BY lastPracticed ASC 
-        LIMIT :limit
-    """)
-    suspend fun getLeastRecentlyPracticed(setName: String, limit: Int): List<CharacterProgress>
-
     // Daily engagement
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -66,11 +52,11 @@ interface ProgressDao {
 
     @Transaction
     suspend fun saveSessionResult(
-        progress: CharacterProgress,
+        progressList: List<CharacterProgress>,
         engagement: DailyEngagement,
         streak: StreakRecord
     ) {
-        upsertProgress(progress)
+        upsertProgressBatch(progressList)
         upsertDailyEngagement(engagement)
         upsertStreak(streak)
     }

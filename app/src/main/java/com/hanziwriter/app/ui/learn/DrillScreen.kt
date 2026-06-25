@@ -21,6 +21,7 @@ fun DrillScreen(
 
     LaunchedEffect(state.isComplete) {
         if (state.isComplete) {
+            viewModel.endSession()
             viewModel.playLessonCompleteSound()
             onComplete()
         }

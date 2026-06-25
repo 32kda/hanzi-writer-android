@@ -18,7 +18,7 @@ import com.hanziwriter.app.data.local.entity.StrokeDataEntity
         DailyEngagement::class,
         StreakRecord::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
