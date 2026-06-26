@@ -130,4 +130,4 @@ Located in `domain/algorithm/CharacterSelector.kt`. Pure function, no DB queries
 - **Added:** `timesPracticed` field to `CharacterProgress`
 - **Added:** `SessionCharacterStats` data class for in-memory session tracking
 - **Added:** `BaseSessionViewModel.endSession()` + `sessionType` abstract property
-- **Database version:** bumped to 5 (destructive migration)
+- **Database version:** bumped to 5 with `MIGRATION_4_5` that recreates `character_progress` (drops old columns, adds `timesPracticed`) and `daily_engagement` (drops `quizScore`) while preserving `characters` and `stroke_data` from the pre-populated asset.
