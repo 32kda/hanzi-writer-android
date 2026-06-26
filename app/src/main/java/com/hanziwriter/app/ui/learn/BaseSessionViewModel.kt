@@ -99,9 +99,11 @@ abstract class BaseSessionViewModel(
                     acceptBackwardsStrokes = true,
                     showHintAfterMisses = null,
                     onCorrectStroke = { result ->
-                        _state.value = _state.value.copy(
-                            currentStrokeIndex = result.strokeNum + 1
-                        )
+                        if (_state.value.quiz == quiz) {
+                            _state.value = _state.value.copy(
+                                currentStrokeIndex = result.strokeNum + 1
+                            )
+                        }
                     },
                     onMistake = { _ ->
                         soundManager.playMistakeSound()
@@ -164,7 +166,12 @@ abstract class BaseSessionViewModel(
     private fun advanceToNextRound() {
         val nextIndex = _state.value.currentRoundIndex + 1
         if (nextIndex < sessionPlan.size) {
-            _state.value = _state.value.copy(currentRoundIndex = nextIndex)
+            _state.value = _state.value.copy(
+                currentRoundIndex = nextIndex,
+                currentStrokeIndex = 0,
+                isLoading = true,
+                quiz = null
+            )
             loadCharacterRound(nextIndex)
         } else {
             _state.value = _state.value.copy(

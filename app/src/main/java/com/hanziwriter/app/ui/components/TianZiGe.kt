@@ -10,7 +10,7 @@ import androidx.compose.ui.graphics.PathEffect
 @Composable
 fun TianZiGe(
     modifier: Modifier = Modifier,
-    gridColor: Color = Color(0xFFE0E0E0),
+    gridColor: Color = Color(0xFF808080),
     borderColor: Color = Color(0xFF9E9E9E)
 ) {
     Canvas(modifier = modifier) {
@@ -49,16 +49,16 @@ fun TianZiGe(
 
         // Diagonal lines (dashed, lighter)
         drawLine(
-            color = gridColor.copy(alpha = 0.5f),
-            start = Offset.Zero,
-            end = Offset(w, h),
+            color = gridColor.copy(alpha = 0.8f),
+            start = Offset(0f, (h - w) / 2),
+            end = Offset(w, w + (h - w) / 2),
             strokeWidth = 1f,
             pathEffect = dashEffect
         )
         drawLine(
-            color = gridColor.copy(alpha = 0.5f),
-            start = Offset(w, 0f),
-            end = Offset(0f, h),
+            color = gridColor.copy(alpha = 0.8f),
+            start = Offset(w, (h - w) / 2),
+            end = Offset(0f, w + (h - w) / 2),
             strokeWidth = 1f,
             pathEffect = dashEffect
         )

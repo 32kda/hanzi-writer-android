@@ -3,6 +3,7 @@ package com.hanziwriter.app.di
 import android.content.Context
 import androidx.room.Room
 import com.hanziwriter.app.data.local.AppDatabase
+import com.hanziwriter.app.data.local.CharactersDatabase
 import com.hanziwriter.app.data.local.dao.CharacterDao
 import com.hanziwriter.app.data.local.dao.ProgressDao
 import dagger.Module
@@ -18,19 +19,30 @@ object DatabaseModule {
 
     @Provides
     @Singleton
-    fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase {
+    fun provideCharactersDatabase(@ApplicationContext context: Context): CharactersDatabase {
         return Room.databaseBuilder(
             context,
-            AppDatabase::class.java,
-            "app_database.db"
+            CharactersDatabase::class.java,
+            "characters.db"
         )
             .createFromAsset("databases/characters.db")
-            .addMigrations(AppDatabase.MIGRATION_4_5)
             .build()
     }
 
     @Provides
-    fun provideCharacterDao(db: AppDatabase): CharacterDao = db.characterDao()
+    @Singleton
+    fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase {
+        return Room.databaseBuilder(
+            context,
+            AppDatabase::class.java,
+            "progress.db"
+        )
+            .fallbackToDestructiveMigration()
+            .build()
+    }
+
+    @Provides
+    fun provideCharacterDao(db: CharactersDatabase): CharacterDao = db.characterDao()
 
     @Provides
     fun provideProgressDao(db: AppDatabase): ProgressDao = db.progressDao()

@@ -55,37 +55,11 @@ class CharacterDatabaseIntegrityTest {
     }
 
     @Test
-    fun `test resources copy is identical to main assets copy`() {
-        val testUrl = CharacterDatabaseIntegrityTest::class.java.classLoader!!
-            .getResource("databases/characters.db")
-        val testFile = File(testUrl!!.toURI())
-
-        val testPath = testFile.canonicalPath.replace('\\', '/')
-        val mainFile = File(testPath.replace("/test/resources/", "/main/assets/"))
-        assertTrue(
-            "Main assets characters.db not found at ${mainFile.absolutePath}",
-            mainFile.exists()
-        )
-
-        val testBytes = testFile.readBytes()
-        val mainBytes = mainFile.readBytes()
-
-        assertEquals(
-            "Test resources characters.db differs from main assets copy. " +
-            "Run: Copy-Item 'app/src/main/assets/databases/characters.db' 'app/src/test/resources/databases/characters.db'",
-            testBytes.size, mainBytes.size
-        )
-        for (i in testBytes.indices) {
-            assertEquals("Byte mismatch at offset $i — test copy is out of sync with main assets", testBytes[i], mainBytes[i])
-        }
-    }
-
-    @Test
-    fun `database version is 5`() {
+    fun `database version is 1`() {
         val stmt = conn.prepareStatement("PRAGMA user_version")
         val rs = stmt.executeQuery()
         rs.next()
-        assertEquals(5, rs.getInt(1))
+        assertEquals(1, rs.getInt(1))
         rs.close()
         stmt.close()
     }

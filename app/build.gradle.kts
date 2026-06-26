@@ -106,6 +106,18 @@ dependencies {
     testImplementation(libs.sqlite.jdbc)
 }
 
+tasks.register("copyTestDb") {
+    doLast {
+        copy {
+            from("src/main/assets/databases/characters.db")
+            into("src/test/resources/databases")
+        }
+    }
+}
+tasks.matching { it.name.matches(Regex("generate\\w*UnitTestResources")) }.configureEach {
+    dependsOn("copyTestDb")
+}
+
 kapt {
     correctErrorTypes = true
 }
