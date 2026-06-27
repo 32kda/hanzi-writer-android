@@ -55,11 +55,11 @@ class CharacterDatabaseIntegrityTest {
     }
 
     @Test
-    fun `database version is 1`() {
+    fun `database version is 2`() {
         val stmt = conn.prepareStatement("PRAGMA user_version")
         val rs = stmt.executeQuery()
         rs.next()
-        assertEquals(1, rs.getInt(1))
+        assertEquals(2, rs.getInt(1))
         rs.close()
         stmt.close()
     }
@@ -165,10 +165,10 @@ class CharacterDatabaseIntegrityTest {
             var count = 0
             while (rs.next()) {
                 count++
-                val pathData = rs.getString("path_data")
+                val pathData = rs.getBytes("path_data")
                 assertTrue(
-                    "Stroke $count for unicode $unicode has invalid path: $pathData",
-                    pathData.startsWith("M ") || pathData.startsWith("m ")
+                    "Stroke $count for unicode $unicode has empty path_data",
+                    pathData != null && pathData.isNotEmpty()
                 )
             }
             assertTrue("Character $unicode has 0 strokes", count > 0)

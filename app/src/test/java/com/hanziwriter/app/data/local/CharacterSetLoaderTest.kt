@@ -107,8 +107,8 @@ class CharacterSetLoaderTest {
         var count = 0
         while (rs.next()) {
             count++
-            val pathData = rs.getString("path_data")
-            assertTrue(pathData.startsWith("M "))
+            val pathData = rs.getBytes("path_data")
+            assertTrue(pathData != null && pathData.isNotEmpty())
         }
         assertEquals("一 should have 1 stroke", 1, count)
 

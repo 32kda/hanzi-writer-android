@@ -26,6 +26,7 @@ object DatabaseModule {
             "characters.db"
         )
             .createFromAsset("databases/characters.db")
+            .fallbackToDestructiveMigration()
             .build()
     }
 

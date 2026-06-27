@@ -3,9 +3,8 @@ package com.hanziwriter.app.util
 import com.hanziwriter.app.domain.model.geometry.PathSegment
 import com.hanziwriter.app.domain.model.geometry.SvgPathParser
 
-fun svgToAndroidPath(svgData: String): android.graphics.Path {
+fun segmentsToAndroidPath(segments: List<PathSegment>): android.graphics.Path {
     val path = android.graphics.Path()
-    val segments = SvgPathParser.parse(svgData)
     var cx = 0f; var cy = 0f
     var startX = 0f; var startY = 0f
     var first = true
@@ -68,4 +67,8 @@ fun svgToAndroidPath(svgData: String): android.graphics.Path {
         }
     }
     return path
+}
+
+fun svgToAndroidPath(svgData: String): android.graphics.Path {
+    return segmentsToAndroidPath(SvgPathParser.parse(svgData))
 }

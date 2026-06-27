@@ -26,8 +26,9 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.hanziwriter.app.domain.model.character.Character
 
+import com.hanziwriter.app.domain.model.geometry.PathSegment
 import com.hanziwriter.app.domain.model.geometry.Point
-import com.hanziwriter.app.util.svgToAndroidPath
+import com.hanziwriter.app.util.segmentsToAndroidPath
 
 data class CanvasViewport(
     val scale: Float,
@@ -36,7 +37,7 @@ data class CanvasViewport(
 )
 
 data class DrawableStroke(
-    val svgPath: String,
+    val segments: List<PathSegment>,
     val medianPoints: List<Point>,
     val color: Color,
     val opacity: Float,
@@ -115,7 +116,7 @@ fun WritingCanvas(
             for (stroke in referenceStrokes) {
                 if (stroke.opacity <= 0f) continue
                 drawSvgStroke(
-                    svgPath = stroke.svgPath,
+                    segments = stroke.segments,
                     viewport = viewport,
                     color = stroke.color.copy(alpha = stroke.opacity),
                     drawPortion = stroke.drawPortion
@@ -174,7 +175,7 @@ private fun mapPoint(point: Point, vp: CanvasViewport): Offset {
 }
 
 private fun DrawScope.drawSvgStroke(
-    svgPath: String,
+    segments: List<PathSegment>,
     viewport: CanvasViewport,
     color: Color,
     drawPortion: Float = 1f
@@ -185,7 +186,7 @@ private fun DrawScope.drawSvgStroke(
     val oy = viewport.offsetY
 
     try {
-        val nativePath = svgToAndroidPath(svgPath)
+        val nativePath = segmentsToAndroidPath(segments)
         path.set(nativePath)
         // SVG data uses Y-up (Cartesian), flip to screen Y-down
         val matrix = android.graphics.Matrix()

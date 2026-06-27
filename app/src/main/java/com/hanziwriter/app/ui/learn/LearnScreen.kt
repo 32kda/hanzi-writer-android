@@ -72,7 +72,7 @@ fun SessionScreenContent(
             val key = stroke.strokeNum.toString()
             val mainState = state.renderState.mainStrokes[key]
             DrawableStroke(
-                svgPath = stroke.path,
+                segments = stroke.getParsedPath() ?: emptyList(),
                 medianPoints = stroke.points,
                 color = Color.DarkGray,
                 opacity = mainState?.opacity?.toFloat() ?: 0f,

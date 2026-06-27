@@ -2,18 +2,103 @@
 Build-time script: generates the pre-populated characters.db for Room.
 
 Usage:
-    python generate_character_db.py --data-dir ../app/src/main/assets/data --sets-dir ../app/src/main/assets/sets --output ../app/src/main/assets/databases/characters.db
+    python generate_character_db.py
 
-Reads MakeMeAHanzi-style JSON files (all.json or individual files),
-produces a SQLite database with stroke data for fast rendering lookup.
+Reads MakeMeAHanzi-style JSON files (all.json),
+produces a SQLite database with binary-encoded stroke data.
 """
 
 import json
 import sqlite3
 import argparse
 import csv
-import io
+import struct
 from pathlib import Path
+
+CMD_MOVE_TO = 0
+CMD_LINE_TO = 1
+CMD_QUAD_TO = 2
+CMD_CUBIC_TO = 3
+CMD_CLOSE = 4
+
+
+def encode_svg_path(path_str: str) -> bytes:
+    """Parse SVG path string into binary: [cmd:u8] [coords:i16le...]"""
+    buf = bytearray()
+    parts = path_str.replace(",", " ").split()
+    i = 0
+    while i < len(parts):
+        token = parts[i]
+        if not token.isalpha():
+            i += 1
+            continue
+        cmd_char = token.upper()
+        i += 1
+
+        if cmd_char == 'Z':
+            buf.append(CMD_CLOSE)
+            continue
+
+        if cmd_char == 'M':
+            cmd_byte = CMD_MOVE_TO
+            coord_count = 2
+        elif cmd_char == 'L':
+            cmd_byte = CMD_LINE_TO
+            coord_count = 2
+        elif cmd_char == 'Q':
+            cmd_byte = CMD_QUAD_TO
+            coord_count = 4
+        elif cmd_char == 'C':
+            cmd_byte = CMD_CUBIC_TO
+            coord_count = 6
+        else:
+            continue
+
+        coords = []
+        while len(coords) < coord_count and i < len(parts) and not parts[i].isalpha():
+            try:
+                coords.append(int(round(float(parts[i]))))
+            except (ValueError, IndexError):
+                pass
+            i += 1
+
+        if cmd_char == 'M':
+            # First M pair is MoveTo
+            if len(coords) >= 2:
+                buf.append(CMD_MOVE_TO)
+                buf.extend(struct.pack('<hh', coords[0], coords[1]))
+                coords = coords[2:]
+            # Remaining implicit pairs are LineTo
+            while len(coords) >= 2:
+                buf.append(CMD_LINE_TO)
+                buf.extend(struct.pack('<hh', coords[0], coords[1]))
+                coords = coords[2:]
+        elif len(coords) >= coord_count:
+            buf.append(cmd_byte)
+            for c in coords[:coord_count]:
+                buf.extend(struct.pack('<h', c))
+            # Remaining pairs are implicit repeats of same command (for Q/C)
+            coords = coords[coord_count:]
+            while len(coords) >= coord_count:
+                buf.append(cmd_byte)
+                for c in coords[:coord_count]:
+                    buf.extend(struct.pack('<h', c))
+                coords = coords[coord_count:]
+        elif len(coords) >= 2 and cmd_char == 'L':
+            buf.append(cmd_byte)
+            buf.extend(struct.pack('<hh', coords[0], coords[1]))
+
+    return bytes(buf)
+
+
+def encode_medians(medians_list: list) -> bytes:
+    """Encode list of [[x,y],...] as binary: [i16 x, i16 y] pairs."""
+    buf = bytearray()
+    for point in medians_list:
+        x = int(round(float(point[0])))
+        y = int(round(float(point[1])))
+        buf.extend(struct.pack('<hh', x, y))
+    return bytes(buf)
 
 
 def load_pinyin_map(sets_dir: str) -> dict:
@@ -93,7 +178,7 @@ def build_database(data_dir: str, sets_dir: str, output_path: str, db_version: i
     conn = sqlite3.connect(str(output_path))
     cursor = conn.cursor()
 
-    cursor.executescript(f"""
+    cursor.executescript("""
         CREATE TABLE characters (
             unicode INTEGER NOT NULL PRIMARY KEY,
             char TEXT NOT NULL,
@@ -104,43 +189,9 @@ def build_database(data_dir: str, sets_dir: str, output_path: str, db_version: i
         CREATE TABLE stroke_data (
             unicode INTEGER NOT NULL,
             stroke_index INTEGER NOT NULL,
-            path_data TEXT NOT NULL,
-            median_points TEXT NOT NULL,
+            path_data BLOB NOT NULL,
+            median_points BLOB NOT NULL,
             PRIMARY KEY (unicode, stroke_index)
-        );
-
-        CREATE TABLE character_progress (
-            unicode INTEGER NOT NULL PRIMARY KEY,
-            accuracy REAL NOT NULL,
-            totalAttempts INTEGER NOT NULL,
-            correctAttempts INTEGER NOT NULL,
-            consecutiveCorrect INTEGER NOT NULL,
-            lastPracticed INTEGER NOT NULL,
-            lastResult TEXT NOT NULL,
-            averageResponseTimeMs INTEGER NOT NULL,
-            hintUsageCount INTEGER NOT NULL,
-            introducedDate INTEGER NOT NULL,
-            isLearned INTEGER NOT NULL,
-            activeSetName TEXT NOT NULL,
-            FOREIGN KEY (unicode) REFERENCES characters(unicode) ON DELETE CASCADE
-        );
-
-        CREATE TABLE daily_engagement (
-            date TEXT NOT NULL PRIMARY KEY,
-            totalTimeMinutes INTEGER NOT NULL,
-            engagementLevel TEXT NOT NULL,
-            activitiesCompleted TEXT NOT NULL,
-            charactersLearned INTEGER NOT NULL,
-            charactersDrilled INTEGER NOT NULL,
-            charactersQuizzed INTEGER NOT NULL,
-            quizScore INTEGER
-        );
-
-        CREATE TABLE streak (
-            id INTEGER NOT NULL PRIMARY KEY,
-            currentStreak INTEGER NOT NULL,
-            longestStreak INTEGER NOT NULL,
-            lastActiveDate TEXT NOT NULL
         );
     """)
 
@@ -158,10 +209,12 @@ def build_database(data_dir: str, sets_dir: str, output_path: str, db_version: i
 
         for i, stroke_path in enumerate(strokes):
             median_points = medians[i] if i < len(medians) else []
+            path_bin = encode_svg_path(stroke_path)
+            med_bin = encode_medians(median_points)
             cursor.execute("""
                 INSERT INTO stroke_data (unicode, stroke_index, path_data, median_points)
                 VALUES (?, ?, ?, ?)
-            """, (unicode, i, stroke_path, json.dumps(median_points)))
+            """, (unicode, i, sqlite3.Binary(path_bin), sqlite3.Binary(med_bin)))
 
     # Set the Room schema version in the database
     cursor.execute(f"PRAGMA user_version = {db_version}")
@@ -173,9 +226,9 @@ def build_database(data_dir: str, sets_dir: str, output_path: str, db_version: i
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Build pre-populated character database")
-    parser.add_argument("--data-dir", default="../app/src/main/assets/data", help="Path to character JSON data directory")
-    parser.add_argument("--sets-dir", default="../app/src/main/assets/sets", help="Path to set CSV directories")
-    parser.add_argument("--output", default="../app/src/main/assets/databases/characters.db", help="Output database path")
+    parser.add_argument("--data-dir", default="./build_scripts/data", help="Path to character JSON data directory")
+    parser.add_argument("--sets-dir", default="./app/src/main/assets/sets", help="Path to set CSV directories")
+    parser.add_argument("--output", default="./app/src/main/assets/databases/characters.db", help="Output database path")
     args = parser.parse_args()
 
-    build_database(args.data_dir, args.sets_dir, args.output)
+    build_database(args.data_dir, args.sets_dir, args.output, db_version=2)

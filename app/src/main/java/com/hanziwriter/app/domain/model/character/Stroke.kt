@@ -1,13 +1,13 @@
 package com.hanziwriter.app.domain.model.character
 
+import com.hanziwriter.app.domain.model.geometry.BinaryPathParser
 import com.hanziwriter.app.domain.model.geometry.GeometryUtils
 import com.hanziwriter.app.domain.model.geometry.PathSampler
 import com.hanziwriter.app.domain.model.geometry.PathSegment
 import com.hanziwriter.app.domain.model.geometry.Point
-import com.hanziwriter.app.domain.model.geometry.SvgPathParser
 
 data class Stroke(
-    val path: String,
+    val path: ByteArray,
     val points: List<Point>,
     val strokeNum: Int,
     val isInRadical: Boolean = false
@@ -24,9 +24,9 @@ data class Stroke(
 
     fun getParsedPath(): List<PathSegment>? = parsedPath
 
-    fun parseSvgPath(segmentsPerCurve: Int = 12): Boolean {
-        if (path.isBlank()) return false
-        val parsed = SvgPathParser.parse(path)
+    fun parsePath(segmentsPerCurve: Int = 12): Boolean {
+        if (path.isEmpty()) return false
+        val parsed = BinaryPathParser.parse(path)
         if (parsed.isEmpty()) return false
         val sampled = PathSampler.sample(parsed, segmentsPerCurve)
         if (sampled.size < 2) return false
@@ -41,5 +41,19 @@ data class Stroke(
     fun getAverageDistance(userPoints: List<Point>): Double {
         val total = userPoints.sumOf { getDistance(it) }
         return total / userPoints.size
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is Stroke) return false
+        return path.contentEquals(other.path) && points == other.points && strokeNum == other.strokeNum && isInRadical == other.isInRadical
+    }
+
+    override fun hashCode(): Int {
+        var result = path.contentHashCode()
+        result = 31 * result + points.hashCode()
+        result = 31 * result + strokeNum
+        result = 31 * result + isInRadical.hashCode()
+        return result
     }
 }
