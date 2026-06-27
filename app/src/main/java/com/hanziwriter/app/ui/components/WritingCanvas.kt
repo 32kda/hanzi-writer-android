@@ -89,6 +89,7 @@ fun WritingCanvas(
         Canvas(
             modifier = Modifier
                 .fillMaxSize()
+                .padding(4.dp)
                 .onGloballyPositioned { coordinates ->
                     canvasSize = coordinates.size
                 }

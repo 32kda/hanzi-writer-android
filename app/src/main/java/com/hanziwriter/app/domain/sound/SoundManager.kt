@@ -2,6 +2,7 @@ package com.hanziwriter.app.domain.sound
 
 import android.content.Context
 import android.media.AudioAttributes
+import android.media.AudioManager
 import android.media.SoundPool
 import android.os.Build
 import android.os.VibrationEffect
@@ -21,6 +22,7 @@ class SoundManager @Inject constructor(
     private val positiveId: Int
 
     private val vibrator: Vibrator
+    private val audioManager: AudioManager
 
     init {
         val attrs = AudioAttributes.Builder()
@@ -49,28 +51,41 @@ class SoundManager @Inject constructor(
             @Suppress("DEPRECATION")
             context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
         }
+        audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
     }
 
+    private val isSoundEnabled: Boolean
+        get() = audioManager.ringerMode == AudioManager.RINGER_MODE_NORMAL
+
     fun playMistakeSound() {
-        soundPool.play(negative2ShortId, 1f, 1f, 1, 0, 1f)
+        if (isSoundEnabled) {
+            soundPool.play(negative2ShortId, 1f, 1f, 1, 0, 1f)
+        }
     }
 
     fun playCharacterCompleteSound() {
-        soundPool.play(positiveShortId, 1f, 1f, 1, 0, 1f)
+        if (isSoundEnabled) {
+            soundPool.play(positiveShortId, 1f, 1f, 1, 0, 1f)
+        }
     }
 
     fun playLessonCompleteSound() {
-        soundPool.play(positiveId, 1f, 1f, 1, 0, 1f)
+        val inSilent = audioManager.ringerMode == AudioManager.RINGER_MODE_SILENT
+        if (inSilent) return
+        if (isSoundEnabled) {
+            soundPool.play(positiveId, 1f, 1f, 1, 0, 1f)
+        }
+        vibrateLong()
     }
 
     fun vibrate() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val effect = VibrationEffect.createOneShot(100, VibrationEffect.DEFAULT_AMPLITUDE)
-            vibrator.vibrate(effect)
-        } else {
-            @Suppress("DEPRECATION")
-            vibrator.vibrate(100)
-        }
+        val effect = VibrationEffect.createOneShot(100, VibrationEffect.DEFAULT_AMPLITUDE)
+        vibrator.vibrate(effect)
+    }
+
+    fun vibrateLong() {
+        val effect = VibrationEffect.createOneShot(400, VibrationEffect.DEFAULT_AMPLITUDE)
+        vibrator.vibrate(effect)
     }
 
     fun release() {

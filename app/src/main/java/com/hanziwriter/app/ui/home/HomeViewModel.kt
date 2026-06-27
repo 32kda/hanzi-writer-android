@@ -48,6 +48,9 @@ class HomeViewModel @Inject constructor(
     private val _state = MutableStateFlow(HomeUiState())
     val state: StateFlow<HomeUiState> = _state.asStateFlow()
 
+    private var allUnicodes: List<Int> = emptyList()
+    private var allCards: List<QuizCard> = emptyList()
+
     init {
         viewModelScope.launch {
             loadSetInfo()
@@ -65,6 +68,27 @@ class HomeViewModel @Inject constructor(
             val minutes = progressRepository.getTotalMinutesForDate(today)
             _state.value = _state.value.copy(
                 engagementText = if (minutes > 0) "Today: $minutes min" else "Today: 0 min — Ready to practice"
+            )
+        }
+    }
+
+    fun refreshSelections() {
+        if (allUnicodes.isEmpty()) return
+        viewModelScope.launch {
+            val allProgress = progressRepository.getAllProgressForSet(setName)
+            val progressMap = allProgress.associate { it.unicode to ProgressInfo(it.lastPracticed, it.timesPracticed) }
+
+            val learnUnicodes = CharacterSelector.select(allUnicodes, progressMap, count = 2)
+            val drillUnicodes = CharacterSelector.select(allUnicodes, progressMap, count = 5)
+            val quizUnicodes = CharacterSelector.select(allUnicodes, progressMap, count = 10)
+
+            _state.value = _state.value.copy(
+                nextLearningChars = learnUnicodes,
+                nextReviewChars = drillUnicodes,
+                nextQuizChars = quizUnicodes,
+                learnCharacters = allCards.filter { it.character.first().code in learnUnicodes },
+                drillCharacters = allCards.filter { it.character.first().code in drillUnicodes },
+                quizCharacters = allCards.filter { it.character.first().code in quizUnicodes }
             )
         }
     }
@@ -99,23 +123,13 @@ class HomeViewModel @Inject constructor(
             )
         }
 
-        val allUnicodes = cards.map { it.character.first().code }
-        val allProgress = progressRepository.getAllProgressForSet(setName)
-        val progressMap = allProgress.associate { it.unicode to ProgressInfo(it.lastPracticed, it.timesPracticed) }
-
-        val learnUnicodes = CharacterSelector.select(allUnicodes, progressMap, count = 2)
-        val drillUnicodes = CharacterSelector.select(allUnicodes, progressMap, count = 5)
-        val quizUnicodes = CharacterSelector.select(allUnicodes, progressMap, count = 10)
+        allCards = cards
+        allUnicodes = cards.map { it.character.first().code }
 
         _state.value = _state.value.copy(
             setDisplayName = displayName,
-            hasValidSet = true,
-            nextLearningChars = learnUnicodes,
-            nextReviewChars = drillUnicodes,
-            nextQuizChars = quizUnicodes,
-            learnCharacters = cards.filter { it.character.first().code in learnUnicodes },
-            drillCharacters = cards.filter { it.character.first().code in drillUnicodes },
-            quizCharacters = cards.filter { it.character.first().code in quizUnicodes }
+            hasValidSet = true
         )
+        refreshSelections()
     }
 }
