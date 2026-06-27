@@ -13,6 +13,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -28,6 +29,7 @@ fun HomeScreen(
     onNavigateToLearn: (List<Int>) -> Unit,
     onNavigateToDrill: (List<Int>) -> Unit,
     onNavigateToQuiz: (List<Int>) -> Unit,
+    onViewCalendar: () -> Unit,
     onChangeSet: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
@@ -66,11 +68,13 @@ fun HomeScreen(
 
         Spacer(modifier = Modifier.height(4.dp))
 
-        Text(
-            text = state.streakText,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.primary
-        )
+        TextButton(onClick = onViewCalendar) {
+            Text(
+                text = state.streakText,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
 
         Spacer(modifier = Modifier.height(4.dp))
 

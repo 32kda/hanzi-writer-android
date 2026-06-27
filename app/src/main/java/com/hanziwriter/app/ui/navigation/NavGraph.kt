@@ -7,6 +7,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.hanziwriter.app.ui.home.HomeScreen
+import com.hanziwriter.app.ui.calendar.CalendarScreen
 import com.hanziwriter.app.ui.learn.DrillScreen
 import com.hanziwriter.app.ui.learn.LearnScreen
 import com.hanziwriter.app.ui.learn.QuizScreen
@@ -59,6 +60,9 @@ object Routes {
 
     // ── Screen 6: Quiz Results  ──
     const val RESULTS = "results/{mode}/{score}"
+
+    // ── Screen 7: Calendar  ──
+    const val CALENDAR = "calendar"
 
     // ── Helper functions that build concrete route strings ──
 
@@ -145,6 +149,9 @@ fun NavGraph(
                 onNavigateToQuiz = { unicodes ->
                     navController.navigate(Routes.quiz(unicodes))
                 },
+                onViewCalendar = {
+                    navController.navigate(Routes.CALENDAR)
+                },
                 onChangeSet = {
                     // Go back to set selector, removing home from the stack.
                     navController.navigate(Routes.SET_SELECTOR) {
@@ -203,25 +210,18 @@ fun NavGraph(
 
             QuizScreen(
                 unicodes = unicodes,
-                onComplete = { score ->
-                    navController.navigate(Routes.results("quiz", score))
-                },
+                onComplete = { navController.popBackStack() },
                 onBack = { navController.popBackStack() }
             )
         }
 
         // ══════════════════════════════════════════════
-        // 6. Results Screen
+        // 6. Calendar Screen
         // ══════════════════════════════════════════════
-        composable(
-            route = Routes.RESULTS,
-            arguments = listOf(
-                navArgument("mode") { type = NavType.StringType },
-                navArgument("score") { type = NavType.IntType }
+        composable(Routes.CALENDAR) {
+            CalendarScreen(
+                onBack = { navController.popBackStack() }
             )
-        ) {
-            // TODO: Replace with a proper ResultsScreen component
-            androidx.compose.material3.Text("Results screen")
         }
     }
 }

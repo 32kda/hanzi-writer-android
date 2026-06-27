@@ -141,12 +141,16 @@ fun WritingCanvas(
                     val badgeVisible = animationProgress < 1f || i >= currentStrokeIndex
 
                     if (badgeVisible) {
-                        drawStrokeBadge(
-                            number = i + 1,
-                            centerX = mapped.x,
-                            centerY = mapped.y,
-                            color = primaryColor
-                        )
+                        val direction = StrokeBadge.computeDirection(stroke.points)
+                        StrokeBadge.run {
+                            draw(
+                                number = i + 1,
+                                centerX = mapped.x,
+                                centerY = mapped.y,
+                                color = primaryColor,
+                                direction = direction
+                            )
+                        }
                     }
                 }
             }
@@ -261,51 +265,12 @@ private fun DrawScope.drawUserPath(points: List<Offset>, color: Color, viewport:
         path = path,
         color = color,
         style = Stroke(
-            width = 8f,
+            width = 16f,
             cap = StrokeCap.Round,
             join = StrokeJoin.Round
         )
     )
 }
 
-private fun DrawScope.drawStrokeBadge(
-    number: Int,
-    centerX: Float,
-    centerY: Float,
-    color: Color,
-    radius: Float = 28f
-) {
-    // White fill circle
-    drawCircle(
-        color = Color.White,
-        radius = radius,
-        center = Offset(centerX, centerY)
-    )
-    // Colored border
-    drawCircle(
-        color = color,
-        radius = radius,
-        center = Offset(centerX, centerY),
-        style = Stroke(width = 4f)
-    )
-    // Number
-    val paint = android.graphics.Paint().apply {
-        this.color = android.graphics.Color.argb(
-            (color.alpha * 255).toInt(),
-            (color.red * 255).toInt(),
-            (color.green * 255).toInt(),
-            (color.blue * 255).toInt()
-        )
-        textSize = 28f
-        textAlign = android.graphics.Paint.Align.CENTER
-        isFakeBoldText = true
-    }
-    drawContext.canvas.nativeCanvas.drawText(
-        number.toString(),
-        centerX,
-        centerY + paint.textSize / 3f,
-        paint
-    )
-}
 
 

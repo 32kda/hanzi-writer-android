@@ -35,7 +35,8 @@ data class LearnUiState(
     val isComplete: Boolean = false,
     val currentRoundIndex: Int = 0,
     val totalRounds: Int = 0,
-    val sessionResults: Map<Int, CharacterResult> = emptyMap()
+    val sessionResults: Map<Int, CharacterResult> = emptyMap(),
+    val sessionCharacters: List<Character> = emptyList()
 )
 
 abstract class BaseSessionViewModel(
@@ -52,6 +53,8 @@ abstract class BaseSessionViewModel(
     private var currentUnicode: Int = 0
 
     private val sessionStats = mutableMapOf<Int, SessionCharacterStats>()
+    private val loadedCharacters = mutableListOf<Character>()
+    private val loadedUnicodes = mutableSetOf<Int>()
     private var consecutiveCorrect: Int = 0
     private var sessionStartTime: Long = 0L
 
@@ -62,6 +65,8 @@ abstract class BaseSessionViewModel(
     fun startSession(unicodes: List<Int>) {
         sessionPlan = buildSessionPlan(unicodes)
         sessionStats.clear()
+        loadedCharacters.clear()
+        loadedUnicodes.clear()
         consecutiveCorrect = 0
         sessionStartTime = System.currentTimeMillis()
         _state.value = _state.value.copy(
@@ -93,6 +98,9 @@ abstract class BaseSessionViewModel(
             val strokeEntities = characterRepository.getStrokeData(round.unicode)
             if (charEntity != null) {
                 val character = characterRepository.buildDomainCharacter(charEntity, strokeEntities)
+                if (loadedUnicodes.add(round.unicode)) {
+                    loadedCharacters.add(character)
+                }
                 val renderState = RenderState(character)
                 val quiz = Quiz(character, renderState)
                 quiz.start(Quiz.QuizOptions(
@@ -178,7 +186,8 @@ abstract class BaseSessionViewModel(
                 isComplete = true,
                 sessionResults = sessionStats.mapValues { (_, stats) ->
                     CharacterResult(stats.totalAttempts, stats.correctAttempts)
-                }
+                },
+                sessionCharacters = loadedCharacters.toList()
             )
         }
     }

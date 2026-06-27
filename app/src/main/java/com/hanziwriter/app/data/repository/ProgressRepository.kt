@@ -3,8 +3,10 @@ package com.hanziwriter.app.data.repository
 import com.hanziwriter.app.data.local.dao.ProgressDao
 import com.hanziwriter.app.data.local.entity.CharacterProgress
 import com.hanziwriter.app.data.local.entity.DailyEngagement
+import com.hanziwriter.app.data.local.entity.DaysPracticed
 import com.hanziwriter.app.data.local.entity.StreakRecord
 import kotlinx.coroutines.flow.Flow
+import java.time.LocalDate
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -97,6 +99,9 @@ class ProgressRepository @Inject constructor(
         }
 
         progressDao.saveSessionResult(progressList, updatedEngagement, streak)
+
+        val todayEpochDay = LocalDate.now().toEpochDay().toInt()
+        progressDao.insertDaysPracticed(DaysPracticed(todayEpochDay))
     }
 
     suspend fun getProgress(unicode: Int): CharacterProgress? =
@@ -110,9 +115,14 @@ class ProgressRepository @Inject constructor(
 
     suspend fun getStreak(): StreakRecord? = progressDao.getStreak()
 
+    fun observeStreak(): Flow<StreakRecord?> = progressDao.observeStreak()
+
     suspend fun getTotalMinutesForDate(date: String): Int =
         progressDao.getTotalMinutesForDate(date)
 
     suspend fun getRecentEngagements(): List<DailyEngagement> =
         progressDao.getRecentEngagements()
+
+    suspend fun getAllDaysPracticed(): List<Int> =
+        progressDao.getAllDaysPracticed()
 }

@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.time.LocalDate
 import javax.inject.Inject
 
 data class HomeUiState(
@@ -50,11 +51,20 @@ class HomeViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             loadSetInfo()
-            val streak = progressRepository.getStreak()
-            val streakDays = streak?.currentStreak ?: 0
+        }
+        viewModelScope.launch {
+            progressRepository.observeStreak().collect { streak ->
+                val streakDays = streak?.currentStreak ?: 0
+                _state.value = _state.value.copy(
+                    streakText = if (streakDays > 0) "\uD83D\uDD25 Streak: $streakDays days" else "Start your streak!"
+                )
+            }
+        }
+        viewModelScope.launch {
+            val today = LocalDate.now().toString()
+            val minutes = progressRepository.getTotalMinutesForDate(today)
             _state.value = _state.value.copy(
-                streakText = if (streakDays > 0) "\uD83D\uDD25 Streak: $streakDays days" else "Start your streak!",
-                engagementText = "Today: 0 min — Ready to practice"
+                engagementText = if (minutes > 0) "Today: $minutes min" else "Today: 0 min — Ready to practice"
             )
         }
     }

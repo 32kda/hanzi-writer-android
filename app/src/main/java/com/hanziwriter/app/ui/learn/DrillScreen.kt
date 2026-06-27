@@ -23,7 +23,6 @@ fun DrillScreen(
         if (state.isComplete) {
             viewModel.endSession()
             viewModel.playLessonCompleteSound()
-            onComplete()
         }
     }
 
@@ -32,6 +31,7 @@ fun DrillScreen(
         onStrokeStart = { offset -> viewModel.onStrokeStart(offset) },
         onStrokeMove = { offset -> viewModel.onStrokeMove(offset) },
         onStrokeEnd = { viewModel.onStrokeEnd() },
-        onBack = onBack
+        onBack = onBack,
+        onDismiss = onComplete
     )
 }
