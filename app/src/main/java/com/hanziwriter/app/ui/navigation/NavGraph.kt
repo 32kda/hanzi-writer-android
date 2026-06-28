@@ -117,13 +117,11 @@ fun NavGraph(
         composable(Routes.SET_SELECTOR) {
             SetSelectorScreen(
                 onSetSelected = { setName ->
-                    // Save the chosen set for next app launch
                     onSelectSet(setName)
-                    // Navigate to the Home screen and remove the Set Selector from
-                    // the back stack (inclusive = true means even the selector itself
-                    // is removed), so pressing "back" won't return to it.
                     navController.navigate(Routes.home(setName)) {
-                        popUpTo(Routes.SET_SELECTOR) { inclusive = true }
+                        popUpTo(navController.graph.startDestinationId) {
+                            inclusive = true
+                        }
                     }
                 }
             )
@@ -153,10 +151,7 @@ fun NavGraph(
                     navController.navigate(Routes.CALENDAR)
                 },
                 onChangeSet = {
-                    // Go back to set selector, removing home from the stack.
-                    navController.navigate(Routes.SET_SELECTOR) {
-                        popUpTo(Routes.HOME) { inclusive = true }
-                    }
+                    navController.navigate(Routes.SET_SELECTOR)
                 }
             )
         }

@@ -12,6 +12,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -31,7 +34,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import java.time.DayOfWeek
-import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.TextStyle
 import java.util.Locale
@@ -48,13 +50,15 @@ fun CalendarScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.White)
-            .padding(16.dp)
+            .windowInsetsPadding(WindowInsets.systemBars)
+            .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
-        TextButton(onClick = onBack) {
-            Text("← Back")
+        TextButton(
+            onClick = onBack,
+            modifier = Modifier.padding(bottom = 8.dp)
+        ) {
+            Text("← Back", fontSize = 16.sp)
         }
-
-        Spacer(modifier = Modifier.height(8.dp))
 
         MonthCalendar(
             yearMonth = currentMonth,
@@ -84,7 +88,7 @@ private fun MonthCalendar(
                 Text("〈", fontSize = 20.sp)
             }
             Text(
-                text = yearMonth.month.getDisplayName(TextStyle.FULL, Locale.getDefault()) +
+                text = yearMonth.month.getDisplayName(TextStyle.FULL_STANDALONE, Locale.getDefault()) +
                         " ${yearMonth.year}",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
@@ -122,7 +126,6 @@ private fun MonthCalendar(
                         val date = yearMonth.atDay(dayNum)
                         val epochDay = date.toEpochDay().toInt()
                         val isPracticed = epochDay in practicedSet
-                        val isToday = date == LocalDate.now()
 
                         DayCell(
                             day = dayNum,
