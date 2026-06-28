@@ -50,6 +50,20 @@ data class DrawableUserStroke(
     val color: Color
 )
 
+/**
+ * Y-axis anchor for coordinate space conversion.
+ *
+ * The stroke dataset uses a Y range of roughly [-124, 900] with (0, 900) as
+ * the upper-left origin and Y *decreasing* downward.  Per the dataset SVG spec
+ * the correct Y-flip transform is:
+ *
+ *     translate(0, -900) scale(1, -1)    =>   y_screen = 900 - y_char
+ *
+ * Using 1024 here (the naively assumed canvas height) would shift every stroke
+ * ~124 character-space units downward on screen.
+ */
+private const val CHAR_Y_FLIP_ANCHOR = 900f
+
 @Composable
 fun WritingCanvas(
     character: Character?,
@@ -73,7 +87,7 @@ fun WritingCanvas(
         val vp = computeViewport(canvasSize.width.toFloat(), canvasSize.height.toFloat())
         return Offset(
             (screenPos.x - vp.offsetX) / vp.scale,
-            1024f - (screenPos.y - vp.offsetY) / vp.scale
+            CHAR_Y_FLIP_ANCHOR - (screenPos.y - vp.offsetY) / vp.scale
         )
     }
 
@@ -171,7 +185,7 @@ private fun computeViewport(canvasWidth: Float, canvasHeight: Float): CanvasView
 private fun mapPoint(point: Point, vp: CanvasViewport): Offset {
     return Offset(
         x = point.x.toFloat() * vp.scale + vp.offsetX,
-        y = (1024f - point.y.toFloat()) * vp.scale + vp.offsetY
+        y = (CHAR_Y_FLIP_ANCHOR - point.y.toFloat()) * vp.scale + vp.offsetY
     )
 }
 
@@ -192,7 +206,7 @@ private fun DrawScope.drawSvgStroke(
         // SVG data uses Y-up (Cartesian), flip to screen Y-down
         val matrix = android.graphics.Matrix()
         matrix.postScale(scale, -scale)
-        matrix.postTranslate(ox, oy + 1024f * scale)
+        matrix.postTranslate(ox, oy + CHAR_Y_FLIP_ANCHOR * scale)
         path.transform(matrix)
 
         val fillPaint = android.graphics.Paint().apply {
@@ -250,7 +264,7 @@ private fun DrawScope.drawUserPath(points: List<Offset>, color: Color, viewport:
     val first = if (viewport != null) {
         Offset(
             points.first().x * viewport.scale + viewport.offsetX,
-            (1024f - points.first().y) * viewport.scale + viewport.offsetY
+            (CHAR_Y_FLIP_ANCHOR - points.first().y) * viewport.scale + viewport.offsetY
         )
     } else points.first()
     path.moveTo(first.x, first.y)
@@ -258,7 +272,7 @@ private fun DrawScope.drawUserPath(points: List<Offset>, color: Color, viewport:
         val p = if (viewport != null) {
             Offset(
                 points[i].x * viewport.scale + viewport.offsetX,
-                (1024f - points[i].y) * viewport.scale + viewport.offsetY
+                (CHAR_Y_FLIP_ANCHOR - points[i].y) * viewport.scale + viewport.offsetY
             )
         } else points[i]
         path.lineTo(p.x, p.y)
