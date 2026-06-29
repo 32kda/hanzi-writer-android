@@ -107,7 +107,9 @@ abstract class BaseSessionViewModel(
                     acceptBackwardsStrokes = true,
                     showHintAfterMisses = null,
                     onCorrectStroke = { result ->
-                        if (_state.value.quiz == quiz) {
+                        if (_state.value.quiz == quiz &&
+                            result.strokeNum + 1 < character.strokeCount
+                        ) {
                             _state.value = _state.value.copy(
                                 currentStrokeIndex = result.strokeNum + 1
                             )
@@ -120,7 +122,10 @@ abstract class BaseSessionViewModel(
                     },
                     onComplete = {
                         soundManager.playCharacterCompleteSound()
-                        advanceToNextRound()
+                        viewModelScope.launch {
+                            kotlinx.coroutines.delay(300L)
+                            advanceToNextRound()
+                        }
                     }
                 ))
                 configureRenderState(renderState, character, round.hintLevel)

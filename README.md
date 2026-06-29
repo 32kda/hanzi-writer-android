@@ -1,4 +1,4 @@
-# HanziWriter — Android App
+# OpenHanziWriter — Android App
 
 Chinese Character Writing Trainer for Android (API 26+).
 

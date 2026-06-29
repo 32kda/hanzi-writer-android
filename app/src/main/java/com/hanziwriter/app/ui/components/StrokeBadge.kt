@@ -12,7 +12,7 @@ object StrokeBadge {
 
     fun computeDirection(points: List<Point>): Offset? {
         if (points.size < 2) return null
-        val sample = points.take(7)
+        val sample = points.take(4)
         var sumDx = 0.0
         var sumDy = 0.0
         for (j in 1 until sample.size) {
