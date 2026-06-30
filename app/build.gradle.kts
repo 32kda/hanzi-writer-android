@@ -84,6 +84,9 @@ dependencies {
     implementation(libs.room.ktx)
     kapt(libs.room.compiler)
 
+    // SplashScreen
+    implementation(libs.core.splashscreen)
+
     // DataStore
     implementation(libs.datastore.preferences)
 

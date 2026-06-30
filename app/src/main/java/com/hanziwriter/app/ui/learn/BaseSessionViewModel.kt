@@ -23,6 +23,11 @@ data class CharacterResult(
     val correctAttempts: Int
 )
 
+data class DemoState(
+    val strokeIndex: Int,
+    val progress: Float
+)
+
 data class LearnUiState(
     val character: Character? = null,
     val quiz: Quiz? = null,
@@ -36,7 +41,8 @@ data class LearnUiState(
     val currentRoundIndex: Int = 0,
     val totalRounds: Int = 0,
     val sessionResults: Map<Int, CharacterResult> = emptyMap(),
-    val sessionCharacters: List<Character> = emptyList()
+    val sessionCharacters: List<Character> = emptyList(),
+    val demoState: DemoState? = null
 )
 
 abstract class BaseSessionViewModel(
@@ -55,6 +61,7 @@ abstract class BaseSessionViewModel(
     private val sessionStats = mutableMapOf<Int, SessionCharacterStats>()
     private val loadedCharacters = mutableListOf<Character>()
     private val loadedUnicodes = mutableSetOf<Int>()
+    private val animatedUnicodes = mutableSetOf<Int>()
     private var consecutiveCorrect: Int = 0
     private var sessionStartTime: Long = 0L
 
@@ -67,6 +74,7 @@ abstract class BaseSessionViewModel(
         sessionStats.clear()
         loadedCharacters.clear()
         loadedUnicodes.clear()
+        animatedUnicodes.clear()
         consecutiveCorrect = 0
         sessionStartTime = System.currentTimeMillis()
         _state.value = _state.value.copy(
@@ -101,44 +109,61 @@ abstract class BaseSessionViewModel(
                 if (loadedUnicodes.add(round.unicode)) {
                     loadedCharacters.add(character)
                 }
-                val renderState = RenderState(character)
-                val quiz = Quiz(character, renderState)
-                quiz.start(Quiz.QuizOptions(
-                    acceptBackwardsStrokes = true,
-                    showHintAfterMisses = null,
-                    onCorrectStroke = { result ->
-                        if (_state.value.quiz == quiz &&
-                            result.strokeNum + 1 < character.strokeCount
-                        ) {
-                            _state.value = _state.value.copy(
-                                currentStrokeIndex = result.strokeNum + 1
-                            )
-                        }
-                    },
-                    onMistake = { _ ->
-                        soundManager.playMistakeSound()
-                        soundManager.vibrate()
-                        handleMistake(quiz, renderState)
-                    },
-                    onComplete = {
-                        soundManager.playCharacterCompleteSound()
-                        viewModelScope.launch {
-                            kotlinx.coroutines.delay(300L)
-                            advanceToNextRound()
-                        }
-                    }
-                ))
-                configureRenderState(renderState, character, round.hintLevel)
-                _state.value = _state.value.copy(
-                    character = character,
-                    quiz = quiz,
-                    renderState = renderState,
-                    isLoading = false
-                )
+                if (sessionType == "learn" && animatedUnicodes.add(round.unicode)) {
+                    val renderState = RenderState(character)
+                    configureRenderState(renderState, character, round.hintLevel)
+                    _state.value = _state.value.copy(
+                        character = character,
+                        renderState = renderState,
+                        quiz = null,
+                        isLoading = false,
+                        demoState = DemoState(0, 0f)
+                    )
+                    startDemoAnimation(character)
+                } else {
+                    startQuizForRound(character, round, RenderState(character))
+                }
             } else {
                 advanceToNextRound()
             }
         }
+    }
+
+    private fun startQuizForRound(character: Character, round: CharacterRound, renderState: RenderState) {
+        val quiz = Quiz(character, renderState)
+        quiz.start(Quiz.QuizOptions(
+            acceptBackwardsStrokes = true,
+            showHintAfterMisses = null,
+            onCorrectStroke = { result ->
+                if (_state.value.quiz == quiz &&
+                    result.strokeNum + 1 < character.strokeCount
+                ) {
+                    _state.value = _state.value.copy(
+                        currentStrokeIndex = result.strokeNum + 1
+                    )
+                }
+            },
+            onMistake = { _ ->
+                soundManager.playMistakeSound()
+                soundManager.vibrate()
+                handleMistake(quiz, renderState)
+            },
+            onComplete = {
+                soundManager.playCharacterCompleteSound()
+                viewModelScope.launch {
+                    kotlinx.coroutines.delay(300L)
+                    advanceToNextRound()
+                }
+            }
+        ))
+        configureRenderState(renderState, character, round.hintLevel)
+        _state.value = _state.value.copy(
+            character = character,
+            quiz = quiz,
+            renderState = renderState,
+            isLoading = false,
+            demoState = null
+        )
     }
 
     private fun configureRenderState(
@@ -160,6 +185,38 @@ abstract class BaseSessionViewModel(
                 }
             }
         }
+    }
+
+    private fun startDemoAnimation(character: Character) {
+        val speed = 512.0  // units per second
+        val frameMs = 16L
+        viewModelScope.launch {
+            while (_state.value.demoState != null) {
+                for (i in character.strokes.indices) {
+                    if (_state.value.demoState == null) return@launch
+                    val strokeLength = character.strokes[i].length
+                    val steps = maxOf(5, (strokeLength / speed * 1000.0 / frameMs).toInt())
+                    for (step in 0..steps) {
+                        if (_state.value.demoState == null) return@launch
+                        _state.value = _state.value.copy(
+                            demoState = DemoState(i, step.toFloat() / steps)
+                        )
+                        kotlinx.coroutines.delay(frameMs)
+                    }
+                }
+                if (_state.value.demoState != null) {
+                    kotlinx.coroutines.delay(500L)
+                }
+            }
+        }
+    }
+
+    fun skipDemo() {
+        val currentState = _state.value
+        val roundIndex = currentState.currentRoundIndex
+        val round = sessionPlan.getOrNull(roundIndex) ?: return
+        val character = currentState.character ?: return
+        startQuizForRound(character, round, RenderState(character))
     }
 
     private fun handleMistake(quiz: Quiz, renderState: RenderState) {
@@ -198,6 +255,7 @@ abstract class BaseSessionViewModel(
     }
 
     fun onStrokeStart(offset: androidx.compose.ui.geometry.Offset) {
+        if (_state.value.demoState != null) return
         val quiz = _state.value.quiz ?: return
         val point = com.hanziwriter.app.domain.model.geometry.Point(
             offset.x.toDouble(), offset.y.toDouble()
@@ -207,6 +265,7 @@ abstract class BaseSessionViewModel(
     }
 
     fun onStrokeMove(offset: androidx.compose.ui.geometry.Offset) {
+        if (_state.value.demoState != null) return
         val quiz = _state.value.quiz ?: return
         val point = com.hanziwriter.app.domain.model.geometry.Point(
             offset.x.toDouble(), offset.y.toDouble()
@@ -218,6 +277,7 @@ abstract class BaseSessionViewModel(
     }
 
     fun onStrokeEnd() {
+        if (_state.value.demoState != null) return
         val quiz = _state.value.quiz ?: return
         val unicode = currentUnicode
         quiz.endUserStroke { result ->

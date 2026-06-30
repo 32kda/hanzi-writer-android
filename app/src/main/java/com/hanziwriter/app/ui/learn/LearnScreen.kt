@@ -43,6 +43,7 @@ fun SessionScreenContent(
     onStrokeEnd: () -> Unit,
     onBack: () -> Unit,
     onDismiss: () -> Unit = {},
+    onSkipDemo: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     if (state.isComplete) {
@@ -50,6 +51,73 @@ fun SessionScreenContent(
             state = state,
             onDismiss = onDismiss
         )
+        return
+    }
+
+    if (state.demoState != null) {
+        val character = state.character ?: return
+        val demoStrokes = character.strokes.mapIndexed { i, stroke ->
+            val opacity = when {
+                i < state.demoState.strokeIndex -> 1f
+                i == state.demoState.strokeIndex -> 1f
+                else -> 0.15f
+            }
+            val drawPortion = when {
+                i < state.demoState.strokeIndex -> 1f
+                i == state.demoState.strokeIndex -> state.demoState.progress
+                else -> 1f
+            }
+            DrawableStroke(
+                segments = stroke.getParsedPath() ?: emptyList(),
+                medianPoints = stroke.points,
+                color = Color.DarkGray,
+                opacity = opacity,
+                drawPortion = drawPortion,
+                strokeNum = stroke.strokeNum
+            )
+        }
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .windowInsetsPadding(WindowInsets.systemBars)
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+        ) {
+            Text(
+                text = character.pinyin,
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .padding(bottom = 4.dp)
+            )
+
+            WritingCanvas(
+                character = character,
+                referenceStrokes = demoStrokes,
+                userStrokes = emptyList(),
+                currentUserPoints = emptyList(),
+                showNumbers = true,
+                currentStrokeIndex = state.demoState.strokeIndex,
+                animationProgress = 1f,
+                onStrokeStart = null,
+                onStrokeMove = null,
+                onStrokeEnd = null,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Button(
+                onClick = onSkipDemo,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Next")
+            }
+        }
         return
     }
 
@@ -275,6 +343,7 @@ fun LearnScreen(
         onStrokeMove = { offset -> viewModel.onStrokeMove(offset) },
         onStrokeEnd = { viewModel.onStrokeEnd() },
         onBack = onBack,
-        onDismiss = onComplete
+        onDismiss = onComplete,
+        onSkipDemo = { viewModel.skipDemo() }
     )
 }

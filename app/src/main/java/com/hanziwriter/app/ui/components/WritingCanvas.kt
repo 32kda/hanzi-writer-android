@@ -132,6 +132,7 @@ fun WritingCanvas(
                 if (stroke.opacity <= 0f) continue
                 drawSvgStroke(
                     segments = stroke.segments,
+                    medianPoints = stroke.medianPoints,
                     viewport = viewport,
                     color = stroke.color.copy(alpha = stroke.opacity),
                     drawPortion = stroke.drawPortion
@@ -191,6 +192,7 @@ private fun mapPoint(point: Point, vp: CanvasViewport): Offset {
 
 private fun DrawScope.drawSvgStroke(
     segments: List<PathSegment>,
+    medianPoints: List<Point>,
     viewport: CanvasViewport,
     color: Color,
     drawPortion: Float = 1f
@@ -235,24 +237,66 @@ private fun DrawScope.drawSvgStroke(
 
         val canvas = drawContext.canvas.nativeCanvas
 
-        val drawPath = if (drawPortion < 1f) {
-            val bounds = android.graphics.RectF()
-            path.computeBounds(bounds, true)
-            val clipPath = android.graphics.Path()
-            clipPath.addRect(
-                bounds.left,
-                bounds.top,
-                bounds.left + bounds.width() * drawPortion,
-                bounds.bottom,
-                android.graphics.Path.Direction.CW
-            )
-            clipPath.op(path, android.graphics.Path.Op.INTERSECT)
-            clipPath
+        val isPartial = drawPortion > 0f && drawPortion < 1f
+        if (drawPortion <= 0f) return
+
+        if (isPartial) {
+            // Step 1: draw full outline as guide (always visible)
+            canvas.drawPath(path, strokePaint)
+
+            // Build full median path in screen space
+            val medPath = android.graphics.Path()
+            if (medianPoints.isNotEmpty()) {
+                val f = medianPoints[0]
+                medPath.moveTo(
+                    f.x.toFloat() * scale + ox,
+                    (CHAR_Y_FLIP_ANCHOR - f.y.toFloat()) * scale + oy
+                )
+                for (k in 1 until medianPoints.size) {
+                    val p = medianPoints[k]
+                    medPath.lineTo(
+                        p.x.toFloat() * scale + ox,
+                        (CHAR_Y_FLIP_ANCHOR - p.y.toFloat()) * scale + oy
+                    )
+                }
+            }
+
+            val pm = android.graphics.PathMeasure(medPath, false)
+            val totalLen = pm.length
+
+            if (totalLen > 0f) {
+                // Step 2: save layer, draw filled outline (dst), mask with
+                // animated dashed thick centerline (src, DST_IN)
+                val saveCount = canvas.saveLayer(
+                    android.graphics.RectF(0f, 0f, size.width, size.height),
+                    null
+                )
+
+                canvas.drawPath(path, fillPaint)
+
+                val maskPaint = android.graphics.Paint().apply {
+                    style = android.graphics.Paint.Style.STROKE
+                    strokeWidth = 25f * scale
+                    strokeCap = android.graphics.Paint.Cap.ROUND
+                    strokeJoin = android.graphics.Paint.Join.ROUND
+                    isAntiAlias = true
+                    pathEffect = android.graphics.DashPathEffect(
+                        floatArrayOf(totalLen * drawPortion, totalLen * 10f),
+                        0f
+                    )
+                    xfermode = android.graphics.PorterDuffXfermode(
+                        android.graphics.PorterDuff.Mode.DST_IN
+                    )
+                }
+                canvas.drawPath(medPath, maskPaint)
+
+                canvas.restoreToCount(saveCount)
+            }
         } else {
-            path
+            // Step 3: full fill + outline when animation complete
+            canvas.drawPath(path, fillPaint)
+            canvas.drawPath(path, strokePaint)
         }
-        canvas.drawPath(drawPath, fillPaint)
-        canvas.drawPath(drawPath, strokePaint)
     } catch (_: Exception) {
         // Fallback: skip if path parsing fails
     }

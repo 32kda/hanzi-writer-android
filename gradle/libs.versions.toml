@@ -9,6 +9,7 @@ lifecycle = "2.7.0"
 navigation = "2.7.6"
 datastore = "1.0.0"
 work = "2.9.0"
+splashscreen = "1.0.1"
 serialization = "1.6.2"
 coroutines = "1.7.3"
 junit = "4.13.2"
@@ -44,6 +45,7 @@ room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
 room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
 
 # DataStore
+core-splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "splashscreen" }
 datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
 
 # WorkManager
