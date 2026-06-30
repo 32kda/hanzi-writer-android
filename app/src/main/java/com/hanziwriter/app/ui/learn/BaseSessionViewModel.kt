@@ -119,7 +119,6 @@ abstract class BaseSessionViewModel(
                         isLoading = false,
                         demoState = DemoState(0, 0f)
                     )
-                    startDemoAnimation(character)
                 } else {
                     startQuizForRound(character, round, RenderState(character))
                 }
@@ -182,30 +181,6 @@ abstract class BaseSessionViewModel(
             HintLevel.NONE -> {
                 for (i in 0 until character.strokeCount) {
                     renderState.setStrokeOpacity("main", i.toString(), 0.0)
-                }
-            }
-        }
-    }
-
-    private fun startDemoAnimation(character: Character) {
-        val speed = 512.0  // units per second
-        val frameMs = 16L
-        viewModelScope.launch {
-            while (_state.value.demoState != null) {
-                for (i in character.strokes.indices) {
-                    if (_state.value.demoState == null) return@launch
-                    val strokeLength = character.strokes[i].length
-                    val steps = maxOf(5, (strokeLength / speed * 1000.0 / frameMs).toInt())
-                    for (step in 0..steps) {
-                        if (_state.value.demoState == null) return@launch
-                        _state.value = _state.value.copy(
-                            demoState = DemoState(i, step.toFloat() / steps)
-                        )
-                        kotlinx.coroutines.delay(frameMs)
-                    }
-                }
-                if (_state.value.demoState != null) {
-                    kotlinx.coroutines.delay(500L)
                 }
             }
         }

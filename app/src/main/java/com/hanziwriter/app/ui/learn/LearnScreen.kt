@@ -20,10 +20,15 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -34,6 +39,12 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.hanziwriter.app.ui.components.DrawableStroke
 import com.hanziwriter.app.ui.components.WritingCanvas
+
+private const val DEMO_ANIM_SPEED = 1024
+
+private const val ANIM_DELAY = 16L
+
+private const val AFTER_ANIM_DELAY = 500L
 
 @Composable
 fun SessionScreenContent(
@@ -56,15 +67,37 @@ fun SessionScreenContent(
 
     if (state.demoState != null) {
         val character = state.character ?: return
+
+        var animStrokeIndex by remember { mutableStateOf(0) }
+        var animProgress by remember { mutableStateOf(0f) }
+
+        Log.d("DemoAnim", "Entered demo block, strokes=${character.strokes.size}")
+
+        LaunchedEffect(state.demoState) {
+            while (true) {
+                for (i in character.strokes.indices) {
+                    animStrokeIndex = i
+                    val strokeLen = character.strokes[i].length
+                    val totalFrames = maxOf(5, (strokeLen / DEMO_ANIM_SPEED * 1000.0 / 16.0).toInt())
+                    for (frame in 0..totalFrames) {
+                        animProgress = frame.toFloat() / totalFrames
+                        delay(ANIM_DELAY)
+                    }
+                }
+                Log.d("DemoAnim", "Loop restart after 500ms")
+                delay(AFTER_ANIM_DELAY)
+            }
+        }
+
         val demoStrokes = character.strokes.mapIndexed { i, stroke ->
             val opacity = when {
-                i < state.demoState.strokeIndex -> 1f
-                i == state.demoState.strokeIndex -> 1f
+                i < animStrokeIndex -> 1f
+                i == animStrokeIndex -> 1f
                 else -> 0.15f
             }
             val drawPortion = when {
-                i < state.demoState.strokeIndex -> 1f
-                i == state.demoState.strokeIndex -> state.demoState.progress
+                i < animStrokeIndex -> 1f
+                i == animStrokeIndex -> animProgress
                 else -> 1f
             }
             DrawableStroke(
@@ -90,6 +123,15 @@ fun SessionScreenContent(
                 textAlign = TextAlign.Center,
                 modifier = Modifier
                     .align(Alignment.CenterHorizontally)
+                    .padding(bottom = 2.dp)
+            )
+            Text(
+                text = character.definition,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
                     .padding(bottom = 4.dp)
             )
 
@@ -99,7 +141,7 @@ fun SessionScreenContent(
                 userStrokes = emptyList(),
                 currentUserPoints = emptyList(),
                 showNumbers = true,
-                currentStrokeIndex = state.demoState.strokeIndex,
+                currentStrokeIndex = animStrokeIndex,
                 animationProgress = 1f,
                 onStrokeStart = null,
                 onStrokeMove = null,

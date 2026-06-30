@@ -64,6 +64,11 @@ data class DrawableUserStroke(
  */
 private const val CHAR_Y_FLIP_ANCHOR = 900f
 
+/**
+ * Character animation stroke width
+ */
+private const val STROKE_WIDTH = 100f
+
 @Composable
 fun WritingCanvas(
     character: Character?,
@@ -240,66 +245,83 @@ private fun DrawScope.drawSvgStroke(
         val isPartial = drawPortion > 0f && drawPortion < 1f
         if (drawPortion <= 0f) return
 
-        if (isPartial) {
-            // Step 1: draw full outline as guide (always visible)
-            canvas.drawPath(path, strokePaint)
-
-            // Build full median path in screen space
-            val medPath = android.graphics.Path()
-            if (medianPoints.isNotEmpty()) {
-                val f = medianPoints[0]
-                medPath.moveTo(
-                    f.x.toFloat() * scale + ox,
-                    (CHAR_Y_FLIP_ANCHOR - f.y.toFloat()) * scale + oy
-                )
-                for (k in 1 until medianPoints.size) {
-                    val p = medianPoints[k]
-                    medPath.lineTo(
-                        p.x.toFloat() * scale + ox,
-                        (CHAR_Y_FLIP_ANCHOR - p.y.toFloat()) * scale + oy
-                    )
-                }
-            }
-
-            val pm = android.graphics.PathMeasure(medPath, false)
-            val totalLen = pm.length
-
-            if (totalLen > 0f) {
-                // Step 2: save layer, draw filled outline (dst), mask with
-                // animated dashed thick centerline (src, DST_IN)
-                val saveCount = canvas.saveLayer(
-                    android.graphics.RectF(0f, 0f, size.width, size.height),
-                    null
-                )
-
-                canvas.drawPath(path, fillPaint)
-
-                val maskPaint = android.graphics.Paint().apply {
-                    style = android.graphics.Paint.Style.STROKE
-                    strokeWidth = 25f * scale
-                    strokeCap = android.graphics.Paint.Cap.ROUND
-                    strokeJoin = android.graphics.Paint.Join.ROUND
-                    isAntiAlias = true
-                    pathEffect = android.graphics.DashPathEffect(
-                        floatArrayOf(totalLen * drawPortion, totalLen * 10f),
-                        0f
-                    )
-                    xfermode = android.graphics.PorterDuffXfermode(
-                        android.graphics.PorterDuff.Mode.DST_IN
-                    )
-                }
-                canvas.drawPath(medPath, maskPaint)
-
-                canvas.restoreToCount(saveCount)
-            }
-        } else {
-            // Step 3: full fill + outline when animation complete
+        if (isPartial && medianPoints.size >= 2) {
+            drawAnimatedStroke(path, medianPoints, fillPaint, strokePaint, drawPortion, scale, ox, oy)
+        } else if (!isPartial) {
             canvas.drawPath(path, fillPaint)
             canvas.drawPath(path, strokePaint)
         }
     } catch (_: Exception) {
         // Fallback: skip if path parsing fails
     }
+}
+
+private fun DrawScope.drawAnimatedStroke(
+    outlinePath: android.graphics.Path,
+    medianPoints: List<Point>,
+    fillPaint: android.graphics.Paint,
+    strokePaint: android.graphics.Paint,
+    drawPortion: Float,
+    scale: Float,
+    ox: Float,
+    oy: Float
+) {
+    val canvas = drawContext.canvas.nativeCanvas
+
+    canvas.drawPath(outlinePath, strokePaint)
+
+    val medPath = android.graphics.Path()
+    val f = medianPoints[0]
+    medPath.moveTo(
+        f.x.toFloat() * scale + ox,
+        (CHAR_Y_FLIP_ANCHOR - f.y.toFloat()) * scale + oy
+    )
+
+    val segLens = DoubleArray(medianPoints.size - 1)
+    var totalLength = 0.0
+    for (k in 1 until medianPoints.size) {
+        val dx = medianPoints[k].x - medianPoints[k - 1].x
+        val dy = medianPoints[k].y - medianPoints[k - 1].y
+        segLens[k - 1] = kotlin.math.sqrt(dx * dx + dy * dy)
+        totalLength += segLens[k - 1]
+    }
+
+    val animLen = totalLength * drawPortion
+    var acc = 0.0
+    for (k in 1 until medianPoints.size) {
+        if (acc + segLens[k - 1] > animLen && animLen > acc) {
+            val frac = (animLen - acc) / segLens[k - 1]
+            val pt = medianPoints[k]
+            val px = medianPoints[k - 1].x + (pt.x - medianPoints[k - 1].x) * frac
+            val py = medianPoints[k - 1].y + (pt.y - medianPoints[k - 1].y) * frac
+            medPath.lineTo(
+                px.toFloat() * scale + ox,
+                (CHAR_Y_FLIP_ANCHOR - py.toFloat()) * scale + oy
+            )
+            break
+        }
+        val p = medianPoints[k]
+        medPath.lineTo(
+            p.x.toFloat() * scale + ox,
+            (CHAR_Y_FLIP_ANCHOR - p.y.toFloat()) * scale + oy
+        )
+        acc += segLens[k - 1]
+    }
+
+    val thickStroke = android.graphics.Paint().apply {
+        style = android.graphics.Paint.Style.STROKE
+        strokeWidth = STROKE_WIDTH * scale
+        strokeCap = android.graphics.Paint.Cap.ROUND
+        strokeJoin = android.graphics.Paint.Join.ROUND
+        isAntiAlias = true
+    }
+    val clipPath = android.graphics.Path()
+    thickStroke.getFillPath(medPath, clipPath)
+
+    val saveCount = canvas.save()
+    canvas.clipPath(clipPath)
+    canvas.drawPath(outlinePath, fillPaint)
+    canvas.restoreToCount(saveCount)
 }
 
 private fun DrawScope.drawUserPath(points: List<Offset>, color: Color, viewport: CanvasViewport? = null) {
