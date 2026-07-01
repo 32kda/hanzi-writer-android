@@ -92,7 +92,10 @@ fun SetSelectorScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
             FloatingActionButton(onClick = {
-                importLauncher.launch(arrayOf("text/csv", "application/zip"))
+                importLauncher.launch(arrayOf(
+                    "text/csv", "text/comma-separated-values",
+                    "application/csv", "application/zip"
+                ))
             }) {
                 Icon(Icons.Default.Add, contentDescription = "Import character set")
             }

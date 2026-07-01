@@ -39,7 +39,7 @@ data class HomeUiState(
 class HomeViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val progressRepository: ProgressRepository,
-    appPreferences: AppPreferences,
+    private val appPreferences: AppPreferences,
     private val repository: CharacterSetRepository
 ) : ViewModel() {
 
@@ -69,6 +69,26 @@ class HomeViewModel @Inject constructor(
             _state.value = _state.value.copy(
                 engagementText = if (minutes > 0) "Today: $minutes min" else "Today: 0 min — Ready to practice"
             )
+        }
+    }
+
+    fun refreshSetInfo() {
+        viewModelScope.launch {
+            val currentName = appPreferences.selectedSetName ?: ""
+            if (currentName != setName) {
+                _state.value = _state.value.copy(
+                    setDisplayName = "No set selected",
+                    hasValidSet = false
+                )
+            } else {
+                val setInfo = repository.findSetInfo(setName)
+                if (setInfo == null) {
+                    _state.value = _state.value.copy(
+                        setDisplayName = "No set selected",
+                        hasValidSet = false
+                    )
+                }
+            }
         }
     }
 

@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <style name="Theme.HanziWriter.Splash" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowSplashScreenBackground">#FFFFFFFF</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/splash_background00</item>
+        <item name="android:windowSplashScreenAnimationDuration">300</item>
+    </style>
+
     <style name="Theme.HanziWriter" parent="android:Theme.Material.Light.NoActionBar">
         <item name="android:statusBarColor">#FFFFFFFF</item>
         <item name="android:windowLightStatusBar">true</item>

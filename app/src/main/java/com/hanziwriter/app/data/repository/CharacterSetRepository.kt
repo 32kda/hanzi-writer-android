@@ -2,6 +2,7 @@ package com.hanziwriter.app.data.repository
 
 import android.content.Context
 import android.net.Uri
+import android.provider.OpenableColumns
 import android.util.Log
 import com.hanziwriter.app.data.local.CharacterSetInfo
 import com.hanziwriter.app.data.local.CharacterSetLoader
@@ -165,6 +166,15 @@ class CharacterSetRepository @Inject constructor(
     }
 
     private fun deriveNameFromUri(uri: Uri): String {
+        context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+            val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+            if (nameIndex >= 0 && cursor.moveToFirst()) {
+                val filename = cursor.getString(nameIndex)
+                if (filename != null) {
+                    return filename.substringBeforeLast(".")
+                }
+            }
+        }
         val path = uri.lastPathSegment ?: return "imported_set"
         val filename = path.substringAfterLast('/')
         val name = filename.substringBeforeLast(".")
