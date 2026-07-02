@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.hanziwriter.app.data.local.AppPreferences
 import com.hanziwriter.app.data.repository.CharacterRepository
+import com.hanziwriter.app.data.repository.CharacterSetRepository
 import com.hanziwriter.app.data.repository.ProgressRepository
 import com.hanziwriter.app.data.repository.SessionCharacterStats
 import com.hanziwriter.app.domain.model.character.Character
@@ -49,7 +50,8 @@ abstract class BaseSessionViewModel(
     protected val characterRepository: CharacterRepository,
     protected val progressRepository: ProgressRepository,
     protected val soundManager: SoundManager,
-    protected val appPreferences: AppPreferences
+    protected val appPreferences: AppPreferences,
+    protected val characterSetRepository: CharacterSetRepository
 ) : ViewModel() {
 
     protected val _state = MutableStateFlow(LearnUiState())
@@ -57,6 +59,7 @@ abstract class BaseSessionViewModel(
 
     protected var sessionPlan: List<CharacterRound> = emptyList()
     private var currentUnicode: Int = 0
+    private var csvEntryMap: Map<Int, com.hanziwriter.app.data.local.CharacterSetEntry> = emptyMap()
 
     private val sessionStats = mutableMapOf<Int, SessionCharacterStats>()
     private val loadedCharacters = mutableListOf<Character>()
@@ -77,15 +80,23 @@ abstract class BaseSessionViewModel(
         animatedUnicodes.clear()
         consecutiveCorrect = 0
         sessionStartTime = System.currentTimeMillis()
+        csvEntryMap = emptyMap()
         _state.value = _state.value.copy(
             currentRoundIndex = 0,
             totalRounds = sessionPlan.size,
             sessionResults = emptyMap()
         )
-        if (sessionPlan.isNotEmpty()) {
-            loadCharacterRound(0)
-        } else {
+        if (sessionPlan.isEmpty()) {
             _state.value = _state.value.copy(isComplete = true)
+            return
+        }
+        viewModelScope.launch {
+            val setName = appPreferences.selectedSetName ?: ""
+            if (setName.isNotEmpty()) {
+                csvEntryMap = characterSetRepository.loadCsvEntriesForSet(setName)
+                    .associateBy { it.unicode }
+            }
+            loadCharacterRound(0)
         }
     }
 
@@ -106,21 +117,30 @@ abstract class BaseSessionViewModel(
             val strokeEntities = characterRepository.getStrokeData(round.unicode)
             if (charEntity != null) {
                 val character = characterRepository.buildDomainCharacter(charEntity, strokeEntities)
+                val csvEntry = csvEntryMap[round.unicode]
+                val finalCharacter = if (csvEntry != null) {
+                    character.copy(
+                        pinyin = csvEntry.pinyin.ifBlank { character.pinyin },
+                        definition = csvEntry.translation.ifBlank { character.definition }
+                    )
+                } else {
+                    character
+                }
                 if (loadedUnicodes.add(round.unicode)) {
-                    loadedCharacters.add(character)
+                    loadedCharacters.add(finalCharacter)
                 }
                 if (sessionType == "learn" && animatedUnicodes.add(round.unicode)) {
-                    val renderState = RenderState(character)
-                    configureRenderState(renderState, character, round.hintLevel)
+                    val renderState = RenderState(finalCharacter)
+                    configureRenderState(renderState, finalCharacter, round.hintLevel)
                     _state.value = _state.value.copy(
-                        character = character,
+                        character = finalCharacter,
                         renderState = renderState,
                         quiz = null,
                         isLoading = false,
                         demoState = DemoState(0, 0f)
                     )
                 } else {
-                    startQuizForRound(character, round, RenderState(character))
+                    startQuizForRound(finalCharacter, round, RenderState(finalCharacter))
                 }
             } else {
                 advanceToNextRound()

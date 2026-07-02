@@ -2,6 +2,7 @@ package com.hanziwriter.app.ui.learn
 
 import com.hanziwriter.app.data.local.AppPreferences
 import com.hanziwriter.app.data.repository.CharacterRepository
+import com.hanziwriter.app.data.repository.CharacterSetRepository
 import com.hanziwriter.app.data.repository.ProgressRepository
 import com.hanziwriter.app.domain.model.character.HintLevel
 import com.hanziwriter.app.domain.model.quiz.CharacterRound
@@ -14,8 +15,9 @@ class DrillSessionViewModel @Inject constructor(
     characterRepository: CharacterRepository,
     progressRepository: ProgressRepository,
     soundManager: SoundManager,
-    appPreferences: AppPreferences
-) : BaseSessionViewModel(characterRepository, progressRepository, soundManager, appPreferences) {
+    appPreferences: AppPreferences,
+    characterSetRepository: CharacterSetRepository
+) : BaseSessionViewModel(characterRepository, progressRepository, soundManager, appPreferences, characterSetRepository) {
 
     override val sessionType: String = "drill"
 

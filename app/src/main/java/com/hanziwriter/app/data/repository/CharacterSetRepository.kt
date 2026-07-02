@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import android.provider.OpenableColumns
 import android.util.Log
+import com.hanziwriter.app.data.local.CharacterSetEntry
 import com.hanziwriter.app.data.local.CharacterSetInfo
 import com.hanziwriter.app.data.local.CharacterSetLoader
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -49,6 +50,16 @@ class CharacterSetRepository @Inject constructor(
 
     fun findSetInfo(dirName: String): CharacterSetInfo? {
         return _sets.value.find { it.dirName == dirName }
+    }
+
+    suspend fun loadCsvEntriesForSet(setName: String): List<CharacterSetEntry> = withContext(Dispatchers.IO) {
+        val setInfo = findSetInfo(setName) ?: return@withContext emptyList()
+        if (setInfo.isBuiltIn) {
+            CharacterSetLoader.loadFromAssets(context.assets, setName)
+        } else {
+            val csvFile = File(getCustomSetsDir(), "$setName/$setName.csv")
+            CharacterSetLoader.loadFromCsv(csvFile)
+        }
     }
 
     private fun scanCustomSets(): List<CharacterSetInfo> {
