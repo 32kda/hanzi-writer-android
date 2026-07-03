@@ -119,9 +119,7 @@ fun NavGraph(
                 onSetSelected = { setName ->
                     onSelectSet(setName)
                     navController.navigate(Routes.home(setName)) {
-                        popUpTo(navController.graph.startDestinationId) {
-                            inclusive = true
-                        }
+                        popUpTo(Routes.SET_SELECTOR) { inclusive = true }
                     }
                 }
             )
@@ -151,7 +149,9 @@ fun NavGraph(
                     navController.navigate(Routes.CALENDAR)
                 },
                 onChangeSet = {
-                    navController.navigate(Routes.SET_SELECTOR)
+                    navController.navigate(Routes.SET_SELECTOR) {
+                        popUpTo(Routes.HOME) { inclusive = true }
+                    }
                 }
             )
         }
