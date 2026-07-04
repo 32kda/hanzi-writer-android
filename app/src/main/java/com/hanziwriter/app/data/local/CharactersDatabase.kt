@@ -11,7 +11,7 @@ import com.hanziwriter.app.data.local.entity.StrokeDataEntity
         CharacterEntity::class,
         StrokeDataEntity::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class CharactersDatabase : RoomDatabase() {

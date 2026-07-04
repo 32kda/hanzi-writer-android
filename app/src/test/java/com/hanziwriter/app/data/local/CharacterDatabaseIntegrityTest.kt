@@ -55,11 +55,11 @@ class CharacterDatabaseIntegrityTest {
     }
 
     @Test
-    fun `database version is 2`() {
+    fun `database version is 3`() {
         val stmt = conn.prepareStatement("PRAGMA user_version")
         val rs = stmt.executeQuery()
         rs.next()
-        assertEquals(2, rs.getInt(1))
+        assertEquals(3, rs.getInt(1))
         rs.close()
         stmt.close()
     }
@@ -90,7 +90,7 @@ class CharacterDatabaseIntegrityTest {
     fun `all expected characters exist in database with correct unicode`() {
         for (expected in expectedCharacters) {
             val stmt = conn.prepareStatement(
-                "SELECT char, pinyin, definition FROM characters WHERE unicode = ?"
+                "SELECT char FROM characters WHERE unicode = ?"
             )
             stmt.setInt(1, expected.unicode)
             val rs = stmt.executeQuery()
@@ -99,11 +99,6 @@ class CharacterDatabaseIntegrityTest {
                 rs.next()
             )
             assertEquals(expected.character, rs.getString("char"))
-            assertEquals(expected.pinyin, rs.getString("pinyin"))
-            assertTrue(
-                "Definition for '${expected.character}' should contain '${expected.definitionContains}'",
-                rs.getString("definition").lowercase().contains(expected.definitionContains.lowercase())
-            )
             rs.close()
             stmt.close()
         }
@@ -113,7 +108,7 @@ class CharacterDatabaseIntegrityTest {
     fun `all expected characters can be found by character string`() {
         for (expected in expectedCharacters) {
             val stmt = conn.prepareStatement(
-                "SELECT unicode, pinyin FROM characters WHERE char = ?"
+                "SELECT unicode FROM characters WHERE char = ?"
             )
             stmt.setString(1, expected.character)
             val rs = stmt.executeQuery()
@@ -124,10 +119,6 @@ class CharacterDatabaseIntegrityTest {
             assertEquals(
                 "Unicode mismatch for '${expected.character}'",
                 expected.unicode, rs.getInt("unicode")
-            )
-            assertEquals(
-                "Pinyin mismatch for '${expected.character}'",
-                expected.pinyin, rs.getString("pinyin")
             )
             rs.close()
             stmt.close()

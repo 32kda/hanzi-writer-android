@@ -20,7 +20,12 @@ class CharacterRepository @Inject constructor(
     suspend fun getStrokeData(unicode: Int) =
         characterDao.getStrokesForCharacter(unicode)
 
-    fun buildDomainCharacter(entity: CharacterEntity, strokeEntities: List<com.hanziwriter.app.data.local.entity.StrokeDataEntity>): Character {
+    fun buildDomainCharacter(
+        entity: CharacterEntity,
+        strokeEntities: List<com.hanziwriter.app.data.local.entity.StrokeDataEntity>,
+        pinyin: String = "",
+        definition: String = ""
+    ): Character {
         val strokes = strokeEntities.map { strokeEntity ->
             val medianPoints = BinaryPathParser.parseMedians(strokeEntity.medianPoints)
             com.hanziwriter.app.domain.model.character.Stroke(
@@ -32,8 +37,8 @@ class CharacterRepository @Inject constructor(
         return Character(
             symbol = entity.character,
             strokes = strokes,
-            pinyin = entity.pinyin,
-            definition = entity.definition
+            pinyin = pinyin,
+            definition = definition
         )
     }
 }

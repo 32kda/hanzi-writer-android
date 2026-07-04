@@ -4,5 +4,7 @@ import com.hanziwriter.app.domain.model.character.HintLevel
 
 data class CharacterRound(
     val unicode: Int,
-    val hintLevel: HintLevel
+    val hintLevel: HintLevel,
+    val pinyin: String = "",
+    val definition: String = ""
 )
