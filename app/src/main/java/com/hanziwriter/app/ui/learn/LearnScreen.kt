@@ -14,11 +14,18 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import android.util.Log
 import androidx.compose.runtime.Composable
@@ -46,9 +53,11 @@ private const val ANIM_DELAY = 16L
 
 private const val AFTER_ANIM_DELAY = 500L
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SessionScreenContent(
     state: LearnUiState,
+    title: String,
     onStrokeStart: (Offset) -> Unit,
     onStrokeMove: (Offset) -> Unit,
     onStrokeEnd: () -> Unit,
@@ -65,55 +74,153 @@ fun SessionScreenContent(
         return
     }
 
-    if (state.demoState != null) {
-        val character = state.character ?: return
-
-        var animStrokeIndex by remember { mutableStateOf(0) }
-        var animProgress by remember { mutableStateOf(0f) }
-
-        Log.d("DemoAnim", "Entered demo block, strokes=${character.strokes.size}")
-
-        LaunchedEffect(state.demoState) {
-            while (true) {
-                for (i in character.strokes.indices) {
-                    animStrokeIndex = i
-                    val strokeLen = character.strokes[i].length
-                    val totalFrames = maxOf(5, (strokeLen / DEMO_ANIM_SPEED * 1000.0 / 16.0).toInt())
-                    for (frame in 0..totalFrames) {
-                        animProgress = frame.toFloat() / totalFrames
-                        delay(ANIM_DELAY)
+    Scaffold(
+        modifier = modifier,
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = { Text(title) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
                     }
                 }
-                Log.d("DemoAnim", "Loop restart after 500ms")
-                delay(AFTER_ANIM_DELAY)
-            }
-        }
-
-        val demoStrokes = character.strokes.mapIndexed { i, stroke ->
-            val opacity = when {
-                i < animStrokeIndex -> 1f
-                i == animStrokeIndex -> 1f
-                else -> 0.15f
-            }
-            val drawPortion = when {
-                i < animStrokeIndex -> 1f
-                i == animStrokeIndex -> animProgress
-                else -> 1f
-            }
-            DrawableStroke(
-                segments = stroke.getParsedPath() ?: emptyList(),
-                medianPoints = stroke.points,
-                color = Color.DarkGray,
-                opacity = opacity,
-                drawPortion = drawPortion,
-                strokeNum = stroke.strokeNum
             )
         }
+    ) { paddingValues ->
+
+        if (state.isLoading) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                CircularProgressIndicator()
+                Text("Loading character...", modifier = Modifier.padding(top = 16.dp))
+            }
+            return@Scaffold
+        }
+
+        if (state.demoState != null) {
+            val character = state.character ?: return@Scaffold
+
+            var animStrokeIndex by remember { mutableStateOf(0) }
+            var animProgress by remember { mutableStateOf(0f) }
+
+            Log.d("DemoAnim", "Entered demo block, strokes=${character.strokes.size}")
+
+            LaunchedEffect(state.demoState) {
+                while (true) {
+                    for (i in character.strokes.indices) {
+                        animStrokeIndex = i
+                        val strokeLen = character.strokes[i].length
+                        val totalFrames = maxOf(5, (strokeLen / DEMO_ANIM_SPEED * 1000.0 / 16.0).toInt())
+                        for (frame in 0..totalFrames) {
+                            animProgress = frame.toFloat() / totalFrames
+                            delay(ANIM_DELAY)
+                        }
+                    }
+                    Log.d("DemoAnim", "Loop restart after 500ms")
+                    delay(AFTER_ANIM_DELAY)
+                }
+            }
+
+            val demoStrokes = character.strokes.mapIndexed { i, stroke ->
+                val opacity = when {
+                    i < animStrokeIndex -> 1f
+                    i == animStrokeIndex -> 1f
+                    else -> 0.15f
+                }
+                val drawPortion = when {
+                    i < animStrokeIndex -> 1f
+                    i == animStrokeIndex -> animProgress
+                    else -> 1f
+                }
+                DrawableStroke(
+                    segments = stroke.getParsedPath() ?: emptyList(),
+                    medianPoints = stroke.points,
+                    color = Color.DarkGray,
+                    opacity = opacity,
+                    drawPortion = drawPortion,
+                    strokeNum = stroke.strokeNum
+                )
+            }
+
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                Text(
+                    text = character.pinyin,
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .padding(bottom = 2.dp)
+                )
+                Text(
+                    text = character.definition,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .padding(bottom = 4.dp)
+                )
+
+                WritingCanvas(
+                    character = character,
+                    referenceStrokes = demoStrokes,
+                    userStrokes = emptyList(),
+                    currentUserPoints = emptyList(),
+                    showNumbers = true,
+                    currentStrokeIndex = animStrokeIndex,
+                    animationProgress = 1f,
+                    onStrokeStart = null,
+                    onStrokeMove = null,
+                    onStrokeEnd = null,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Button(
+                    onClick = onSkipDemo,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Next")
+                }
+            }
+            return@Scaffold
+        }
+
+        val character = state.character ?: return@Scaffold
+
+        val referenceStrokes = if (state.renderState != null) {
+            character.strokes.map { stroke ->
+                val key = stroke.strokeNum.toString()
+                val mainState = state.renderState.mainStrokes[key]
+                DrawableStroke(
+                    segments = stroke.getParsedPath() ?: emptyList(),
+                    medianPoints = stroke.points,
+                    color = Color.DarkGray,
+                    opacity = mainState?.opacity?.toFloat() ?: 0f,
+                    drawPortion = mainState?.displayPortion?.toFloat() ?: 1f,
+                    strokeNum = stroke.strokeNum
+                )
+            }
+        } else emptyList()
 
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .windowInsetsPadding(WindowInsets.systemBars)
+                .padding(paddingValues)
                 .padding(horizontal = 16.dp, vertical = 8.dp)
         ) {
             Text(
@@ -121,31 +228,29 @@ fun SessionScreenContent(
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .align(Alignment.CenterHorizontally)
-                    .padding(bottom = 2.dp)
+                modifier = Modifier.align(Alignment.CenterHorizontally)
             )
             Text(
                 text = character.definition,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .align(Alignment.CenterHorizontally)
-                    .padding(bottom = 4.dp)
+                modifier = Modifier.align(Alignment.CenterHorizontally)
             )
+
+            Spacer(modifier = Modifier.height(8.dp))
 
             WritingCanvas(
                 character = character,
-                referenceStrokes = demoStrokes,
-                userStrokes = emptyList(),
-                currentUserPoints = emptyList(),
-                showNumbers = true,
-                currentStrokeIndex = animStrokeIndex,
+                referenceStrokes = referenceStrokes,
+                userStrokes = state.userStrokes,
+                currentUserPoints = state.currentUserPoints,
+                showNumbers = state.showNumbers,
+                currentStrokeIndex = state.currentStrokeIndex,
                 animationProgress = 1f,
-                onStrokeStart = null,
-                onStrokeMove = null,
-                onStrokeEnd = null,
+                onStrokeStart = onStrokeStart,
+                onStrokeMove = onStrokeMove,
+                onStrokeEnd = onStrokeEnd,
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
@@ -153,97 +258,12 @@ fun SessionScreenContent(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            Button(
-                onClick = onSkipDemo,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Next")
-            }
-        }
-        return
-    }
-
-    if (state.isLoading) {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            CircularProgressIndicator()
-            Text("Loading character...", modifier = Modifier.padding(top = 16.dp))
-        }
-        return
-    }
-
-    val character = state.character ?: return
-
-    val referenceStrokes = if (state.renderState != null) {
-        character.strokes.map { stroke ->
-            val key = stroke.strokeNum.toString()
-            val mainState = state.renderState.mainStrokes[key]
-            DrawableStroke(
-                segments = stroke.getParsedPath() ?: emptyList(),
-                medianPoints = stroke.points,
-                color = Color.DarkGray,
-                opacity = mainState?.opacity?.toFloat() ?: 0f,
-                drawPortion = mainState?.displayPortion?.toFloat() ?: 1f,
-                strokeNum = stroke.strokeNum
-            )
-        }
-    } else emptyList()
-
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .windowInsetsPadding(WindowInsets.systemBars)
-            .padding(horizontal = 16.dp, vertical = 8.dp)
-    ) {
-        Text(
-            text = character.pinyin,
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.align(Alignment.CenterHorizontally)
-        )
-        Text(
-            text = character.definition,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.align(Alignment.CenterHorizontally)
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        WritingCanvas(
-            character = character,
-            referenceStrokes = referenceStrokes,
-            userStrokes = state.userStrokes,
-            currentUserPoints = state.currentUserPoints,
-            showNumbers = state.showNumbers,
-            currentStrokeIndex = state.currentStrokeIndex,
-            animationProgress = 1f,
-            onStrokeStart = onStrokeStart,
-            onStrokeMove = onStrokeMove,
-            onStrokeEnd = onStrokeEnd,
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
             Text(
                 text = "Stroke ${state.currentStrokeIndex + 1} of ${character.strokeCount}",
-                style = MaterialTheme.typography.bodyMedium
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center
             )
-            Button(onClick = onBack) {
-                Text("Back")
-            }
         }
     }
 }
@@ -381,6 +401,7 @@ fun LearnScreen(
 
     SessionScreenContent(
         state = state,
+        title = "Learn",
         onStrokeStart = { offset -> viewModel.onStrokeStart(offset) },
         onStrokeMove = { offset -> viewModel.onStrokeMove(offset) },
         onStrokeEnd = { viewModel.onStrokeEnd() },

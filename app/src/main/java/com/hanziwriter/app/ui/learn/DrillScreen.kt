@@ -28,6 +28,7 @@ fun DrillScreen(
 
     SessionScreenContent(
         state = state,
+        title = "Drill",
         onStrokeStart = { offset -> viewModel.onStrokeStart(offset) },
         onStrokeMove = { offset -> viewModel.onStrokeMove(offset) },
         onStrokeEnd = { viewModel.onStrokeEnd() },

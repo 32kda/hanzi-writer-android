@@ -3,21 +3,20 @@ package com.hanziwriter.app.ui.home
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.systemBars
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -27,6 +26,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     onNavigateToLearn: (List<Int>) -> Unit,
@@ -38,89 +38,93 @@ fun HomeScreen(
 ) {
     val state by viewModel.state.collectAsState()
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .windowInsetsPadding(WindowInsets.systemBars)
-            .verticalScroll(rememberScrollState())
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        if (!state.hasValidSet) {
-            Text(
-                text = "No character set selected",
-                style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = "The previously selected set is no longer available. Please choose a different set.",
-                style = MaterialTheme.typography.bodyLarge
-            )
-            Spacer(modifier = Modifier.height(24.dp))
-            Button(onClick = onChangeSet) {
-                Text("Choose a Set")
+    Scaffold(
+        topBar = {
+            if (state.hasValidSet) {
+                CenterAlignedTopAppBar(
+                    title = { Text(state.setDisplayName) }
+                )
             }
-            return
         }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .verticalScroll(rememberScrollState())
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            if (!state.hasValidSet) {
+                Text(
+                    text = "No character set selected",
+                    style = MaterialTheme.typography.headlineLarge,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "The previously selected set is no longer available. Please choose a different set.",
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                Spacer(modifier = Modifier.height(24.dp))
+                Button(onClick = onChangeSet) {
+                    Text("Choose a Set")
+                }
+                return@Scaffold
+            }
 
-        Text(
-            text = state.setDisplayName,
-            style = MaterialTheme.typography.headlineLarge,
-            fontWeight = FontWeight.Bold
-        )
+            Spacer(modifier = Modifier.height(4.dp))
 
-        Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = state.streakText,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.clickable { onViewCalendar() }
+            )
 
-        Text(
-            text = state.streakText,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.clickable { onViewCalendar() }
-        )
+            Spacer(modifier = Modifier.height(4.dp))
 
-        Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = state.engagementText,
+                style = MaterialTheme.typography.bodyMedium
+            )
 
-        Text(
-            text = state.engagementText,
-            style = MaterialTheme.typography.bodyMedium
-        )
+            Spacer(modifier = Modifier.height(4.dp))
 
-        Spacer(modifier = Modifier.height(4.dp))
+            Button(onClick = onChangeSet) {
+                Text("Change Set")
+            }
 
-        Button(onClick = onChangeSet) {
-            Text("Change Set")
+            Spacer(modifier = Modifier.height(24.dp))
+
+            ActivityCard(
+                title = "Learn",
+                description = "2-3 new characters",
+                chars = state.learnCharacters,
+                color = MaterialTheme.colorScheme.primary,
+                onClick = { if (state.nextLearningChars.isNotEmpty()) onNavigateToLearn(state.nextLearningChars) }
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            ActivityCard(
+                title = "Drill",
+                description = "5 review characters",
+                chars = state.drillCharacters,
+                color = MaterialTheme.colorScheme.secondary,
+                onClick = { if (state.nextReviewChars.isNotEmpty()) onNavigateToDrill(state.nextReviewChars) }
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            ActivityCard(
+                title = "Quiz",
+                description = "10 characters",
+                chars = emptyList(),
+                color = MaterialTheme.colorScheme.error,
+                onClick = { if (state.nextQuizChars.isNotEmpty()) onNavigateToQuiz(state.nextQuizChars) }
+            )
         }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        ActivityCard(
-            title = "Learn",
-            description = "2-3 new characters",
-            chars = state.learnCharacters,
-            color = MaterialTheme.colorScheme.primary,
-            onClick = { if (state.nextLearningChars.isNotEmpty()) onNavigateToLearn(state.nextLearningChars) }
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        ActivityCard(
-            title = "Drill",
-            description = "5 review characters",
-            chars = state.drillCharacters,
-            color = MaterialTheme.colorScheme.secondary,
-            onClick = { if (state.nextReviewChars.isNotEmpty()) onNavigateToDrill(state.nextReviewChars) }
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        ActivityCard(
-            title = "Quiz",
-            description = "10 characters",
-            chars = emptyList(),
-            color = MaterialTheme.colorScheme.error,
-            onClick = { if (state.nextQuizChars.isNotEmpty()) onNavigateToQuiz(state.nextQuizChars) }
-        )
     }
 }
 

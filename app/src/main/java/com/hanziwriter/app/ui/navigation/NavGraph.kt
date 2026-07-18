@@ -123,9 +123,19 @@ fun NavGraph(
             SetSelectorScreen(
                 onSetSelected = { setName ->
                     onSelectSet(setName)
+                    val prevRoute = navController.previousBackStackEntry?.destination?.route
                     navController.navigate(Routes.home(setName)) {
-                        popUpTo(Routes.SET_SELECTOR) { inclusive = true }
+                        if (prevRoute != null) {
+                            popUpTo(prevRoute) { inclusive = true }
+                        } else {
+                            popUpTo(Routes.SET_SELECTOR) { inclusive = true }
+                        }
                     }
+                },
+                onBack = if (!savedSetName.isNullOrBlank()) {
+                    { navController.popBackStack() }
+                } else {
+                    null
                 }
             )
         }
@@ -163,9 +173,7 @@ fun NavGraph(
                     navController.navigate(Routes.CALENDAR)
                 },
                 onChangeSet = {
-                    navController.navigate(Routes.SET_SELECTOR) {
-                        popUpTo(Routes.HOME) { inclusive = true }
-                    }
+                    navController.navigate(Routes.SET_SELECTOR)
                 },
                 viewModel = homeViewModel
             )

@@ -28,6 +28,7 @@ fun QuizScreen(
 
     SessionScreenContent(
         state = state,
+        title = "Quiz",
         onStrokeStart = { offset -> viewModel.onStrokeStart(offset) },
         onStrokeMove = { offset -> viewModel.onStrokeMove(offset) },
         onStrokeEnd = { viewModel.onStrokeEnd() },
