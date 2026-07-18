@@ -46,13 +46,13 @@ class ProgressDaoTest {
     // ────────────────────────────────────────────────────────────────────
 
     @Test
-    fun `save progress for man not day cat and retrieve each individually`() = runTest {
+    fun `save progress for four characters and retrieve each individually`() = runTest {
         val now = System.currentTimeMillis()
 
-        val man = CharacterProgress(unicode = 20154, accuracy = 0.8, lastPracticed = now, timesPracticed = 1, activeSetName = "hsk1")
-        val bu = CharacterProgress(unicode = 19981, accuracy = 0.9, lastPracticed = now, timesPracticed = 2, activeSetName = "hsk1")
-        val tian = CharacterProgress(unicode = 22825, accuracy = 0.7, lastPracticed = now, timesPracticed = 3, activeSetName = "hsk1")
-        val mao = CharacterProgress(unicode = 29483, accuracy = 0.95, lastPracticed = now, timesPracticed = 4, activeSetName = "hsk1")
+        val man = CharacterProgress(unicode = 20154, accuracy = 0.8, lastPracticed = now, timesPracticed = 1)
+        val bu = CharacterProgress(unicode = 19981, accuracy = 0.9, lastPracticed = now, timesPracticed = 2)
+        val tian = CharacterProgress(unicode = 22825, accuracy = 0.7, lastPracticed = now, timesPracticed = 3)
+        val mao = CharacterProgress(unicode = 29483, accuracy = 0.95, lastPracticed = now, timesPracticed = 4)
 
         dao.upsertProgress(man)
         dao.upsertProgress(bu)
@@ -84,7 +84,7 @@ class ProgressDaoTest {
     @Test
     fun `upsertProgress replaces existing record`() = runTest {
         val now = System.currentTimeMillis()
-        val original = CharacterProgress(unicode = 19981, accuracy = 0.5, lastPracticed = now - 1000, timesPracticed = 1, activeSetName = "hsk1")
+        val original = CharacterProgress(unicode = 19981, accuracy = 0.5, lastPracticed = now - 1000, timesPracticed = 1)
         dao.upsertProgress(original)
 
         val updated = original.copy(accuracy = 0.85, lastPracticed = now, timesPracticed = 3)
@@ -107,10 +107,10 @@ class ProgressDaoTest {
     fun `upsertProgressBatch saves multiple records at once`() = runTest {
         val now = System.currentTimeMillis()
         val batch = listOf(
-            CharacterProgress(unicode = 20154, accuracy = 0.8, lastPracticed = now, timesPracticed = 1, activeSetName = "hsk1"),
-            CharacterProgress(unicode = 19981, accuracy = 0.9, lastPracticed = now, timesPracticed = 2, activeSetName = "hsk1"),
-            CharacterProgress(unicode = 22825, accuracy = 0.7, lastPracticed = now, timesPracticed = 3, activeSetName = "hsk1"),
-            CharacterProgress(unicode = 29483, accuracy = 0.95, lastPracticed = now, timesPracticed = 4, activeSetName = "hsk1"),
+            CharacterProgress(unicode = 20154, accuracy = 0.8, lastPracticed = now, timesPracticed = 1),
+            CharacterProgress(unicode = 19981, accuracy = 0.9, lastPracticed = now, timesPracticed = 2),
+            CharacterProgress(unicode = 22825, accuracy = 0.7, lastPracticed = now, timesPracticed = 3),
+            CharacterProgress(unicode = 29483, accuracy = 0.95, lastPracticed = now, timesPracticed = 4),
         )
         dao.upsertProgressBatch(batch)
 
@@ -121,28 +121,23 @@ class ProgressDaoTest {
     }
 
     @Test
-    fun `getAllProgressForSet returns only records for given set`() = runTest {
+    fun `getAllProgress returns all saved records`() = runTest {
         val now = System.currentTimeMillis()
-        dao.upsertProgress(CharacterProgress(unicode = 20154, accuracy = 1.0, lastPracticed = now, timesPracticed = 1, activeSetName = "hsk1"))
-        dao.upsertProgress(CharacterProgress(unicode = 19981, accuracy = 1.0, lastPracticed = now, timesPracticed = 1, activeSetName = "hsk1"))
-        dao.upsertProgress(CharacterProgress(unicode = 29483, accuracy = 1.0, lastPracticed = now, timesPracticed = 1, activeSetName = "hsk2"))
+        dao.upsertProgress(CharacterProgress(unicode = 20154, accuracy = 1.0, lastPracticed = now, timesPracticed = 1))
+        dao.upsertProgress(CharacterProgress(unicode = 19981, accuracy = 1.0, lastPracticed = now, timesPracticed = 1))
+        dao.upsertProgress(CharacterProgress(unicode = 29483, accuracy = 1.0, lastPracticed = now, timesPracticed = 1))
 
-        val hsk1 = dao.getAllProgressForSet("hsk1")
-        val hsk2 = dao.getAllProgressForSet("hsk2")
-        val empty = dao.getAllProgressForSet("nonexistent")
-
-        assertEquals(2, hsk1.size)
-        assertEquals(1, hsk2.size)
-        assertTrue(empty.isEmpty())
+        val all = dao.getAllProgress()
+        assertEquals(3, all.size)
     }
 
     @Test
-    fun `observeAllProgressForSet emits updates via Flow`() = runTest {
+    fun `observeAllProgress emits updates via Flow`() = runTest {
         val now = System.currentTimeMillis()
-        val flow = dao.observeAllProgressForSet("hsk1")
+        val flow = dao.observeAllProgress()
 
-        dao.upsertProgress(CharacterProgress(unicode = 20154, accuracy = 1.0, lastPracticed = now, timesPracticed = 1, activeSetName = "hsk1"))
-        dao.upsertProgress(CharacterProgress(unicode = 19981, accuracy = 1.0, lastPracticed = now, timesPracticed = 2, activeSetName = "hsk1"))
+        dao.upsertProgress(CharacterProgress(unicode = 20154, accuracy = 1.0, lastPracticed = now, timesPracticed = 1))
+        dao.upsertProgress(CharacterProgress(unicode = 19981, accuracy = 1.0, lastPracticed = now, timesPracticed = 2))
 
         val result = flow.first()
         assertEquals(2, result.size)
@@ -295,9 +290,9 @@ class ProgressDaoTest {
     @Test
     fun `practiced days are returned in ascending order`() = runTest {
         val days = listOf(
-            DaysPracticed(18450), // July 7, 2020
-            DaysPracticed(18444), // July 1, 2020
-            DaysPracticed(18447), // July 4, 2020
+            DaysPracticed(18450),
+            DaysPracticed(18444),
+            DaysPracticed(18447),
         )
         days.forEach { dao.insertDaysPracticed(it) }
 
@@ -330,8 +325,8 @@ class ProgressDaoTest {
     fun `saveSessionResult saves progress engagement streak and days at once`() = runTest {
         val now = System.currentTimeMillis()
         val progressList = listOf(
-            CharacterProgress(unicode = 20154, accuracy = 1.0, lastPracticed = now, timesPracticed = 2, activeSetName = "hsk1"),
-            CharacterProgress(unicode = 19981, accuracy = 0.8, lastPracticed = now, timesPracticed = 3, activeSetName = "hsk1"),
+            CharacterProgress(unicode = 20154, accuracy = 1.0, lastPracticed = now, timesPracticed = 2),
+            CharacterProgress(unicode = 19981, accuracy = 0.8, lastPracticed = now, timesPracticed = 3),
         )
         val engagement = DailyEngagement("2020-07-07", 20, "STRONG", "learn,quiz", 2, 0, 3)
         val streak = StreakRecord(id = 1, currentStreak = 5, longestStreak = 10, lastActiveDate = "2020-07-07")

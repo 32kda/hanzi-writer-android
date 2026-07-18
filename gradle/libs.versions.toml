@@ -25,6 +25,7 @@ compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
 compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
 compose-material3 = { group = "androidx.compose.material3", name = "material3" }
 compose-foundation = { group = "androidx.compose.foundation", name = "foundation" }
+compose-runtime-livedata = { group = "androidx.compose.runtime", name = "runtime-livedata" }
 activity-compose = { group = "androidx.activity", name = "activity-compose", version = "1.8.2" }
 
 # Lifecycle

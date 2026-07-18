@@ -13,6 +13,8 @@ import com.hanziwriter.app.domain.model.quiz.CharacterRound
 import com.hanziwriter.app.domain.model.quiz.Quiz
 import com.hanziwriter.app.domain.model.state.RenderState
 import com.hanziwriter.app.domain.sound.SoundManager
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -169,7 +171,7 @@ abstract class BaseSessionViewModel(
             },
             onComplete = {
                 soundManager.playCharacterCompleteSound()
-                viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
                     kotlinx.coroutines.delay(300L)
                     advanceToNextRound()
                 }
@@ -295,16 +297,14 @@ abstract class BaseSessionViewModel(
         _state.value = _state.value.copy(currentUserPoints = emptyList())
     }
 
-    fun endSession() {
+    fun endSession(): Job {
         val elapsedMs = System.currentTimeMillis() - sessionStartTime
         val minutes = (elapsedMs / 60_000).toInt().coerceAtLeast(1)
         val today = LocalDate.now().toString()
-        val setName = appPreferences.selectedSetName ?: ""
         val now = System.currentTimeMillis()
 
-        viewModelScope.launch {
+        return viewModelScope.launch(Dispatchers.IO) {
             progressRepository.endSession(
-                setName = setName,
                 characterStats = sessionStats.values.toList(),
                 activityType = sessionType,
                 sessionMinutes = minutes,

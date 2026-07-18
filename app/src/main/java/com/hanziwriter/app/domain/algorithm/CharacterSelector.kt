@@ -9,8 +9,8 @@ data class ProgressInfo(
 
 object CharacterSelector {
 
-    private const val MS_PER_DAY: Double = 86_400_000.0
-    private const val DECAY_DAYS: Double = 14.0
+    private const val MS_PER_DAY: Int = 86_400_000
+    private const val DECAY_DAYS: Int = 14
 
     fun select(
         unicodes: List<Int>,
@@ -43,7 +43,7 @@ object CharacterSelector {
         var pending = n
 
         val addAllScores = mutableSetOf<Int>()
-        var addRandomScore: Int? = null
+        var addRandomScore: Int = -1
 
         for (score in sortedScores) {
             val scoreCount = histogram[score] ?: continue
@@ -59,15 +59,17 @@ object CharacterSelector {
         // Step 5: build result
         val result = mutableListOf<Int>()
 
-        // Add all characters for "add all" scores
-        for (i in unicodes.indices) {
-            if (scores[i] in addAllScores) {
-                result.add(unicodes[i])
+        if (!addAllScores.isEmpty()) {
+            // Add all characters for "add all" scores
+            for (i in unicodes.indices) {
+                if (scores[i] in addAllScores) {
+                    result.add(unicodes[i])
+                }
             }
         }
 
         // Reservoir sampling for "add random" score
-        if (addRandomScore != null && pending > 0) {
+        if (addRandomScore > -1 && pending > 0) {
             val candidates = mutableListOf<Int>()
             for (i in unicodes.indices) {
                 if (scores[i] == addRandomScore) {

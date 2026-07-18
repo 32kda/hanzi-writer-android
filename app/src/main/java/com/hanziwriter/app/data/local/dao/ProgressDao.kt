@@ -23,11 +23,11 @@ interface ProgressDao {
     @Query("SELECT * FROM character_progress WHERE unicode = :unicode")
     suspend fun getProgress(unicode: Int): CharacterProgress?
 
-    @Query("SELECT * FROM character_progress WHERE activeSetName = :setName")
-    suspend fun getAllProgressForSet(setName: String): List<CharacterProgress>
+    @Query("SELECT * FROM character_progress")
+    suspend fun getAllProgress(): List<CharacterProgress>
 
-    @Query("SELECT * FROM character_progress WHERE activeSetName = :setName")
-    fun observeAllProgressForSet(setName: String): Flow<List<CharacterProgress>>
+    @Query("SELECT * FROM character_progress")
+    fun observeAllProgress(): Flow<List<CharacterProgress>>
 
     // Daily engagement
 

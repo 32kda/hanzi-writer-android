@@ -5,7 +5,11 @@ import com.hanziwriter.app.data.local.entity.CharacterProgress
 import com.hanziwriter.app.data.local.entity.DailyEngagement
 import com.hanziwriter.app.data.local.entity.DaysPracticed
 import com.hanziwriter.app.data.local.entity.StreakRecord
+import com.hanziwriter.app.domain.algorithm.ProgressInfo
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import java.time.LocalDate
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -20,21 +24,39 @@ data class SessionCharacterStats(
 class ProgressRepository @Inject constructor(
     private val progressDao: ProgressDao
 ) {
+    private val _progressCache = MutableStateFlow<Map<Int, CharacterProgress>>(emptyMap())
+    val progressCache: StateFlow<Map<Int, CharacterProgress>> = _progressCache.asStateFlow()
+
+    suspend fun loadAllProgress() {
+        val all = progressDao.getAllProgress()
+        _progressCache.value = all.associateBy { it.unicode }
+    }
+
+    fun dropCache() {
+        _progressCache.value = emptyMap()
+    }
+
+    fun getProgressInfo(unicodes: List<Int>): Map<Int, ProgressInfo> {
+        return _progressCache.value.filterKeys { it in unicodes }
+            .mapValues { (_, p) -> ProgressInfo(p.lastPracticed, p.timesPracticed) }
+    }
+
     suspend fun endSession(
-        setName: String,
         characterStats: List<SessionCharacterStats>,
         activityType: String,
         sessionMinutes: Int,
         date: String,
         timestamp: Long
     ) {
+        val cache = _progressCache.value.toMutableMap()
+
         val progressList = characterStats.map { stats ->
-            val existing = progressDao.getProgress(stats.unicode)
+            val existing = cache[stats.unicode]
             val sessionAccuracy = if (stats.totalAttempts > 0) {
                 stats.correctAttempts.toDouble() / stats.totalAttempts
             } else 0.0
 
-            if (existing != null) {
+            val updated = if (existing != null) {
                 val newTimesPracticed = existing.timesPracticed + 1
                 val newAccuracy = (existing.accuracy * existing.timesPracticed + sessionAccuracy) / newTimesPracticed
                 existing.copy(
@@ -47,11 +69,14 @@ class ProgressRepository @Inject constructor(
                     unicode = stats.unicode,
                     accuracy = sessionAccuracy,
                     lastPracticed = timestamp,
-                    timesPracticed = 1,
-                    activeSetName = setName
+                    timesPracticed = 1
                 )
             }
+            cache[stats.unicode] = updated
+            updated
         }
+
+        _progressCache.value = cache
 
         val engagement = progressDao.getDailyEngagement(date)
         val updatedEngagement = if (engagement != null) {
@@ -82,7 +107,13 @@ class ProgressRepository @Inject constructor(
             val newStreak = if (existingStreak.lastActiveDate == date) {
                 existingStreak.currentStreak
             } else {
-                existingStreak.currentStreak + 1
+                val lastDate = LocalDate.parse(existingStreak.lastActiveDate)
+                val currentDate = LocalDate.parse(date)
+                if (lastDate.plusDays(1) == currentDate) {
+                    existingStreak.currentStreak + 1
+                } else {
+                    1
+                }
             }
             existingStreak.copy(
                 currentStreak = newStreak,
@@ -98,20 +129,23 @@ class ProgressRepository @Inject constructor(
             )
         }
 
-        progressDao.saveSessionResult(progressList, updatedEngagement, streak)
-
         val todayEpochDay = LocalDate.now().toEpochDay().toInt()
-        progressDao.insertDaysPracticed(DaysPracticed(todayEpochDay))
+        progressDao.saveSessionResult(progressList, updatedEngagement, streak, DaysPracticed(todayEpochDay))
+    }
+
+    suspend fun checkStreakOnStartup() {
+        val existingStreak = progressDao.getStreak() ?: return
+        val today = LocalDate.now().toString()
+        if (existingStreak.lastActiveDate == today) return
+        val lastDate = LocalDate.parse(existingStreak.lastActiveDate)
+        val currentDate = LocalDate.parse(today)
+        if (lastDate.plusDays(1) == currentDate) return
+        val reset = existingStreak.copy(currentStreak = 0)
+        progressDao.upsertStreak(reset)
     }
 
     suspend fun getProgress(unicode: Int): CharacterProgress? =
         progressDao.getProgress(unicode)
-
-    suspend fun getAllProgressForSet(setName: String): List<CharacterProgress> =
-        progressDao.getAllProgressForSet(setName)
-
-    fun observeAllProgressForSet(setName: String): Flow<List<CharacterProgress>> =
-        progressDao.observeAllProgressForSet(setName)
 
     suspend fun getStreak(): StreakRecord? = progressDao.getStreak()
 

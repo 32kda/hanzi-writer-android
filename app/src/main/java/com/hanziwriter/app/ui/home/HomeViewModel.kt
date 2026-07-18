@@ -8,7 +8,6 @@ import com.hanziwriter.app.data.local.CharacterSetLoader
 import com.hanziwriter.app.data.repository.CharacterSetRepository
 import com.hanziwriter.app.data.repository.ProgressRepository
 import com.hanziwriter.app.domain.algorithm.CharacterSelector
-import com.hanziwriter.app.domain.algorithm.ProgressInfo
 import com.hanziwriter.app.domain.model.quiz.QuizCard
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -53,7 +52,11 @@ class HomeViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
+            progressRepository.loadAllProgress()
             loadSetInfo()
+        }
+        viewModelScope.launch {
+            progressRepository.checkStreakOnStartup()
         }
         viewModelScope.launch {
             progressRepository.observeStreak().collect { streak ->
@@ -95,12 +98,15 @@ class HomeViewModel @Inject constructor(
     fun refreshSelections() {
         if (allUnicodes.isEmpty()) return
         viewModelScope.launch {
-            val allProgress = progressRepository.getAllProgressForSet(setName)
-            val progressMap = allProgress.associate { it.unicode to ProgressInfo(it.lastPracticed, it.timesPracticed) }
+            val progressMap = progressRepository.getProgressInfo(allUnicodes)
 
-            val learnUnicodes = CharacterSelector.select(allUnicodes, progressMap, count = 2)
-            val drillUnicodes = CharacterSelector.select(allUnicodes, progressMap, count = 5)
-            val quizUnicodes = CharacterSelector.select(allUnicodes, progressMap, count = 10)
+            val (learnUnicodes, drillUnicodes, quizUnicodes) = withContext(Dispatchers.Default) {
+                Triple(
+                    CharacterSelector.select(allUnicodes, progressMap, count = 2),
+                    CharacterSelector.select(allUnicodes, progressMap, count = 5),
+                    CharacterSelector.select(allUnicodes, progressMap, count = 10)
+                )
+            }
 
             _state.value = _state.value.copy(
                 nextLearningChars = learnUnicodes,

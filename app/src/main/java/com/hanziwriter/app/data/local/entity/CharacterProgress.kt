@@ -8,6 +8,5 @@ data class CharacterProgress(
     @PrimaryKey val unicode: Int,
     val accuracy: Double,
     val lastPracticed: Long,
-    val timesPracticed: Int,
-    val activeSetName: String
+    val timesPracticed: Int
 )

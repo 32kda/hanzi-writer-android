@@ -374,7 +374,7 @@ fun LearnScreen(
 
     LaunchedEffect(state.isComplete) {
         if (state.isComplete) {
-            viewModel.endSession()
+            viewModel.endSession().join()
             viewModel.playLessonCompleteSound()
         }
     }

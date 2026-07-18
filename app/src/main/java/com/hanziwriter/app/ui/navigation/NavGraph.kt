@@ -1,17 +1,22 @@
 package com.hanziwriter.app.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.hanziwriter.app.ui.home.HomeScreen
+import com.hanziwriter.app.ui.home.HomeViewModel
 import com.hanziwriter.app.ui.calendar.CalendarScreen
 import com.hanziwriter.app.ui.learn.DrillScreen
 import com.hanziwriter.app.ui.learn.LearnScreen
 import com.hanziwriter.app.ui.learn.QuizScreen
 import com.hanziwriter.app.ui.setselector.SetSelectorScreen
+import androidx.hilt.navigation.compose.hiltViewModel
 
 // ═══════════════════════════════════════════════════════════════════
 // Route definitions
@@ -131,11 +136,20 @@ fun NavGraph(
         composable(
             route = Routes.HOME,
             arguments = listOf(navArgument("setName") { type = NavType.StringType })
-        ) {
-            // HomeViewModel gets "setName" automatically from SavedStateHandle
+        ) { backStackEntry ->
+            val homeViewModel: HomeViewModel = hiltViewModel()
+            val sessionCompleted by backStackEntry.savedStateHandle
+                .getLiveData<Boolean>("sessionCompleted")
+                .observeAsState()
+
+            LaunchedEffect(sessionCompleted) {
+                if (sessionCompleted == true) {
+                    homeViewModel.refreshSelections()
+                    backStackEntry.savedStateHandle["sessionCompleted"] = false
+                }
+            }
+
             HomeScreen(
-                // Each callback now receives a List<Int> (the full set of unicodes
-                // for that activity) instead of a single Int.
                 onNavigateToLearn = { unicodes ->
                     navController.navigate(Routes.learn(unicodes))
                 },
@@ -152,7 +166,8 @@ fun NavGraph(
                     navController.navigate(Routes.SET_SELECTOR) {
                         popUpTo(Routes.HOME) { inclusive = true }
                     }
-                }
+                },
+                viewModel = homeViewModel
             )
         }
 
@@ -170,8 +185,11 @@ fun NavGraph(
             val unicodes = unicodesStr.split(",").mapNotNull { it.toIntOrNull() }
 
             LearnScreen(
-                unicodes = unicodes,              // ← now a list
-                onComplete = { navController.popBackStack() },
+                unicodes = unicodes,
+                onComplete = {
+                    navController.previousBackStackEntry?.savedStateHandle?.set("sessionCompleted", true)
+                    navController.popBackStack()
+                },
                 onBack = { navController.popBackStack() }
             )
         }
@@ -188,7 +206,10 @@ fun NavGraph(
 
             DrillScreen(
                 unicodes = unicodes,
-                onComplete = { navController.popBackStack() },
+                onComplete = {
+                    navController.previousBackStackEntry?.savedStateHandle?.set("sessionCompleted", true)
+                    navController.popBackStack()
+                },
                 onBack = { navController.popBackStack() }
             )
         }
@@ -205,7 +226,10 @@ fun NavGraph(
 
             QuizScreen(
                 unicodes = unicodes,
-                onComplete = { navController.popBackStack() },
+                onComplete = {
+                    navController.previousBackStackEntry?.savedStateHandle?.set("sessionCompleted", true)
+                    navController.popBackStack()
+                },
                 onBack = { navController.popBackStack() }
             )
         }
