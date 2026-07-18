@@ -70,13 +70,11 @@ fun HomeScreen(
                 Button(onClick = onChangeSet) {
                     Text("Choose a Set")
                 }
-                return@Scaffold
-            }
+            return@Scaffold
+        }
 
-            Spacer(modifier = Modifier.height(4.dp))
-
-            Text(
-                text = state.streakText,
+        Text(
+            text = state.streakText,
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.clickable { onViewCalendar() }
