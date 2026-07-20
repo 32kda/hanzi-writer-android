@@ -57,7 +57,7 @@ adb devices
 ./gradlew installDebug
 
 # Launch the app
-adb shell am start -n com.hanziwriter.app/.MainActivity
+adb shell am start -n org.openhanziwriter.app/.MainActivity
 ```
 
 ### 4. Debugging Tips
@@ -65,20 +65,20 @@ adb shell am start -n com.hanziwriter.app/.MainActivity
 **View logs:**
 ```bash
 # Filter by app package
-adb logcat -s HanziWriter
-adb logcat --pid=$(adb shell pidof -s com.hanziwriter.app)
+adb logcat -s OpenHanziWriter
+adb logcat --pid=$(adb shell pidof -s org.openhanziwriter.app)
 
 # Filter by priority (show only warnings and errors)
 adb logcat *:W
 
 # Clear log buffer first
-adb logcat -c && adb logcat -s HanziWriter
+adb logcat -c && adb logcat -s OpenHanziWriter
 ```
 
 **Inspect database on device:**
 ```bash
 # Copy database from device to computer
-adb exec-out run-as com.hanziwriter.app cat databases/app_database.db > app_database.db
+adb exec-out run-as org.openhanziwriter.app cat databases/app_database.db > app_database.db
 
 # Or use Android Studio's Database Inspector:
 # View → Tool Windows → App Inspection → Database Inspector
@@ -106,7 +106,7 @@ adb connect <phone_ip>:5555
 
 | Issue | Fix |
 |-------|-----|
-| `INSTALL_FAILED_UPDATE_INCOMPATIBLE` | `adb uninstall com.hanziwriter.app` then reinstall |
+| `INSTALL_FAILED_UPDATE_INCOMPATIBLE` | `adb uninstall org.openhanziwriter.app` then reinstall |
 | `INSTALL_FAILED_INSUFFICIENT_STORAGE` | Free up space on device |
 | "Device unauthorized" | Check phone screen for USB debugging authorization prompt |
 | `FAILURE: Build failed with Java 21` | Set `JAVA_HOME` to JDK 17: `$env:JAVA_HOME = "C:\Program Files\Java\jdk-17"` |

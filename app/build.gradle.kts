@@ -7,11 +7,11 @@ plugins {
 }
 
 android {
-    namespace = "com.hanziwriter.app"
+    namespace = "org.openhanziwriter.app"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.hanziwriter.app"
+        applicationId = "org.openhanziwriter.app"
         minSdk = 26
         targetSdk = 34
         versionCode = 2

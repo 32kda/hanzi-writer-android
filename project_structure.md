@@ -1,10 +1,10 @@
-# Hanzi Writer Android — Architecture Overview
+# OpenHanziWriter — Architecture Overview
 
 ## Package Map
 
 ```
-com.hanziwriter.app/
-├── HanziWriterApp.kt              # @HiltAndroidApp entry
+org.openhanziwriter.app/
+├── OpenHanziWriterApp.kt          # @HiltAndroidApp entry
 ├── MainActivity.kt                # Single Activity, sets theme + NavGraph
 │
 ├── di/
