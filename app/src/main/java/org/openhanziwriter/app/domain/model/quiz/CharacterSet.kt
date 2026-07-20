@@ -1,0 +1,6 @@
+package org.openhanziwriter.app.domain.model.quiz
+
+data class CharacterSet(
+    val name: String,
+    val characters: List<String>
+)
