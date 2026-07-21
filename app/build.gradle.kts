@@ -112,7 +112,28 @@ dependencies {
     testImplementation(libs.androidx.test.core)
 }
 
+tasks.register<Exec>("generateCharacterDb") {
+    description = "Generates the pre-populated characters.db from all.json using Python"
+    group = "database"
+
+    workingDir = rootProject.projectDir
+    commandLine("python", "build_scripts/generate_character_db.py")
+
+    // Skip if db already exists and is newer than the source data
+    onlyIf {
+        val dbFile = file("src/main/assets/databases/characters.db")
+        val sourceFile = file("${rootProject.projectDir}/build_scripts/data/all.json")
+        !dbFile.exists() || !sourceFile.exists() || dbFile.lastModified() < sourceFile.lastModified()
+    }
+}
+
+// Generate the database before the Android build starts
+tasks.matching { it.name == "preBuild" }.configureEach {
+    dependsOn("generateCharacterDb")
+}
+
 tasks.register("copyTestDb") {
+    dependsOn("generateCharacterDb")
     doLast {
         copy {
             from("src/main/assets/databases/characters.db")

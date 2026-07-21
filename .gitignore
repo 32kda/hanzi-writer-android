@@ -11,3 +11,5 @@ local.properties
 /app/build
 /app/release
 opencode.json
+/app/src/main/assets/databases/characters.db
+__pycache__/

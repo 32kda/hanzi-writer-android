@@ -3,10 +3,11 @@ Hanzi Writer is a Chinese character writing trainer that helps you learn and pra
 Each character is split into individual strokes — draw them one by one on a traditional Tian Zi Ge grid and get instant feedback on accuracy.
 
 Features:
-- 7 built-in HSK character sets (HSK 1–6 plus Russian translations)
+- HSK 1–6 built in characer sets
 - Three practice modes: Learn (step-by-step with diminishing hints), Drill (review), and Quiz (no hints)
 - Correct stroke order validation with mistake tolerance
 - Import your own character lists from CSV or ZIP files
 - Track your daily practice streak on the calendar
 - Demo animations showing proper stroke order for new characters
 - Works offline — no account or internet required
+- No ads, no sign-in, no paywall. Just install and study.
