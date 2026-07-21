@@ -1,0 +1,4 @@
+* text=auto
+
+# Shell scripts must always use LF on checkout
+gradlew text eol=lf
