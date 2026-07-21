@@ -16,9 +16,8 @@ Builds:
     subdir: app
     gradle:
       - yes
-    prebuild: python ../build_scripts/generate_character_db.py
-    scandelete:
-      - app/src/main/assets/databases
+    prebuild:
+      - python ../build_scripts/generate_character_db.py || python3 ../build_scripts/generate_character_db.py
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
