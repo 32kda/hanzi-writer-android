@@ -1,0 +1,26 @@
+Categories:
+  - Education
+License: MIT
+AuthorName: 32kda
+SourceCode: https://github.com/32kda/hanzi-writer-android
+IssueTracker: https://github.com/32kda/hanzi-writer-android/issues
+Changelog: https://github.com/32kda/hanzi-writer-android/blob/main/fastlane/metadata/android/en-US/changelogs
+
+RepoType: git
+Repo: https://github.com/32kda/hanzi-writer-android.git
+
+Builds:
+  - versionName: '1.1.0'
+    versionCode: 2
+    commit: v1.1.0
+    subdir: app
+    gradle:
+      - yes
+    prebuild: python ../build_scripts/generate_character_db.py
+    scandelete:
+      - app/src/main/assets/databases
+
+AutoUpdateMode: Version
+UpdateCheckMode: Tags
+CurrentVersion: '1.1.0'
+CurrentVersionCode: 2

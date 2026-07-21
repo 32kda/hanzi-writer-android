@@ -1,0 +1,8 @@
+Initial release.
+
+- Standard Android top app bar with back navigation
+- 7 built-in HSK character sets (HSK 1–6, HSK 1 RU)
+- Learn, Drill, and Quiz practice modes
+- Custom set import from CSV and ZIP
+- Practice streak tracking with calendar view
+- Stroke-by-stroke feedback with mistake hints
