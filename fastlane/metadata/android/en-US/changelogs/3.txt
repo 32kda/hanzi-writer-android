@@ -1,0 +1,5 @@
+- Performance rating on session result screen
+- Internationalization support (English, Russian, German, Chinese)
+- Nightly CI builds via GitHub Actions
+- Fixed plural forms in session results
+- Bug fixes

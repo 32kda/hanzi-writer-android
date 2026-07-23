@@ -14,9 +14,9 @@ android {
         applicationId = "org.openhanziwriter.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 2
+        versionCode = 3
 
-        versionName = "1.1.0"
+        versionName = "1.1.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
     }
