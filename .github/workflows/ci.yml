@@ -6,9 +6,12 @@ on:
     tags: ['v*']
   pull_request:
     branches: [main]
+  schedule:
+    - cron: '0 0 * * *'
 
 jobs:
   build:
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -36,3 +39,49 @@ jobs:
 
       - name: Run unit tests
         run: ./gradlew testDebugUnitTest
+
+  nightly:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set build date
+        run: echo "BUILD_DATE=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Generate character database
+        run: python build_scripts/generate_character_db.py
+
+      - name: Build debug APK
+        run: ./gradlew assembleDebug
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: hanzi-writer-nightly-${{ env.BUILD_DATE }}
+          path: app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Update nightly release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: nightly
+          name: Nightly Build — ${{ env.BUILD_DATE }}
+          body: |
+            Automated nightly build from `main` branch.
+
+            **Build date:** ${{ env.BUILD_DATE }}
+            **Commit:** [${{ github.sha }}](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})
+          prerelease: true
+          files: app/build/outputs/apk/debug/app-debug.apk
