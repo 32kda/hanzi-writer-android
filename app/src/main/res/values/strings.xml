@@ -1,4 +1,80 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">OpenHanziWriter</string>
+
+    <!-- Set Selector -->
+    <string name="set_selector_title">Choose a Character Set</string>
+    <string name="set_selector_back">Back</string>
+    <string name="set_selector_import">Import character set</string>
+    <string name="set_selector_empty">No character sets found. Tap + to import one.</string>
+    <string name="set_selector_delete">Delete set</string>
+    <string name="set_selector_overwrite_title">Overwrite set?</string>
+    <string name="set_selector_overwrite_body">A set named \'%1$s\' already exists. Overwrite?</string>
+    <string name="set_selector_overwrite_confirm">Overwrite</string>
+    <string name="set_selector_cancel">Cancel</string>
+    <string name="set_selector_importing">Importing…</string>
+    <string name="set_selector_import_failed">Import failed</string>
+    <string name="set_selector_ok">OK</string>
+    <string name="set_selector_imported">Imported \'%1$s\'</string>
+    <string name="set_selector_deleted">Deleted \'%1$s\'</string>
+    <string name="set_selector_delete_failed">Delete failed</string>
+
+    <!-- Import Errors -->
+    <string name="import_set_exists">Set \'%1$s\' already exists</string>
+    <string name="import_builtin_readonly">Cannot overwrite built-in set \'%1$s\'</string>
+    <string name="import_read_error">Could not read file</string>
+    <string name="import_csv_empty">CSV file contains no valid entries</string>
+    <string name="import_zip_no_csv">ZIP file does not contain \'%1$s.csv\'</string>
+    <string name="import_set_not_found">Set \'%1$s\' not found</string>
+    <string name="import_builtin_delete">Cannot delete built-in set</string>
+
+    <!-- Home -->
+    <string name="home_no_set">No character set selected</string>
+    <string name="home_no_set_body">The previously selected set is no longer available. Please choose a different set.</string>
+    <string name="home_choose_set">Choose a Set</string>
+    <string name="home_change_set">Change Set</string>
+    <string name="home_learn">Learn</string>
+    <string name="home_learn_desc">2–3 new characters</string>
+    <string name="home_drill">Drill</string>
+    <string name="home_drill_desc">5 review characters</string>
+    <string name="home_quiz">Quiz</string>
+    <string name="home_quiz_desc">10 characters</string>
+    <string name="home_streak_start">Start your streak!</string>
+    <string name="home_today_ready">Today: 0 min — Ready to practice</string>
+    <string name="home_no_set_selected">No set selected</string>
+    <string name="home_streak_fmt">&#x1F525; Streak: %1$d days</string>
+    <string name="home_today_fmt">Today: %1$d min</string>
+
+    <!-- Calendar -->
+    <string name="calendar_title">Calendar</string>
+    <string name="calendar_back">Back</string>
+    <string name="day_mon">Mon</string>
+    <string name="day_tue">Tue</string>
+    <string name="day_wed">Wed</string>
+    <string name="day_thu">Thu</string>
+    <string name="day_fri">Fri</string>
+    <string name="day_sat">Sat</string>
+    <string name="day_sun">Sun</string>
+
+    <!-- Session -->
+    <string name="session_back">Back</string>
+    <string name="session_loading">Loading character…</string>
+    <string name="session_next">Next</string>
+    <string name="session_stroke_fmt">Stroke %1$d of %2$d</string>
+    <string name="session_complete">Session Complete!</string>
+    <string name="session_score_fmt">%1$d / %2$d strokes correct (%3$d%%)</string>
+    <string name="session_done">Done</string>
+    <string name="session_learn">Learn</string>
+    <string name="session_drill">Drill</string>
+    <string name="session_quiz">Quiz</string>
+
+    <!-- Plurals -->
+    <plurals name="session_chars_trained">
+        <item quantity="one">%1$d character trained</item>
+        <item quantity="other">%1$d characters trained</item>
+    </plurals>
+    <plurals name="session_per_char_result">
+        <item quantity="one">%1$d/%2$d stroke</item>
+        <item quantity="other">%1$d/%2$d strokes</item>
+    </plurals>
 </resources>

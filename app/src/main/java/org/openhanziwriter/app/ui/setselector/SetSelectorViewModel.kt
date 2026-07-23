@@ -4,10 +4,13 @@ import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import org.openhanziwriter.app.R
 import org.openhanziwriter.app.data.local.AppPreferences
 import org.openhanziwriter.app.data.local.CharacterSetInfo
 import org.openhanziwriter.app.data.repository.CharacterSetRepository
+import org.openhanziwriter.app.data.repository.ImportException
 import org.openhanziwriter.app.data.repository.ImportPreview
+import org.openhanziwriter.app.ui.components.UiText
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,7 +30,7 @@ sealed class ImportState {
     data object Idle : ImportState()
     data class Preview(val preview: ImportPreview, val uri: Uri) : ImportState()
     data class Importing(val name: String) : ImportState()
-    data class Error(val message: String) : ImportState()
+    data class Error(val message: UiText) : ImportState()
 }
 
 @HiltViewModel
@@ -42,8 +45,8 @@ class SetSelectorViewModel @Inject constructor(
     private val _importState = MutableStateFlow<ImportState>(ImportState.Idle)
     val importState: StateFlow<ImportState> = _importState.asStateFlow()
 
-    private val _snackbarEvent = MutableSharedFlow<String>(extraBufferCapacity = 1)
-    val snackbarEvent: SharedFlow<String> = _snackbarEvent.asSharedFlow()
+    private val _snackbarEvent = MutableSharedFlow<UiText>(extraBufferCapacity = 1)
+    val snackbarEvent: SharedFlow<UiText> = _snackbarEvent.asSharedFlow()
 
     private var collectCount = 0
 
@@ -72,8 +75,10 @@ class SetSelectorViewModel @Inject constructor(
             try {
                 val preview = repository.previewImport(uri)
                 _importState.value = ImportState.Preview(preview, uri)
+            } catch (e: ImportException) {
+                _importState.value = ImportState.Error(UiText(e.resId, *e.args.toTypedArray()))
             } catch (e: Exception) {
-                _importState.value = ImportState.Error(e.message ?: "Import failed")
+                _importState.value = ImportState.Error(UiText(R.string.set_selector_import_failed))
             }
         }
     }
@@ -84,12 +89,16 @@ class SetSelectorViewModel @Inject constructor(
             _importState.value = ImportState.Importing(current.preview.name)
             val result = repository.confirmImport(current.uri, overwrite)
             if (result.isSuccess) {
-                _snackbarEvent.tryEmit("Imported '${current.preview.name}'")
+                _snackbarEvent.tryEmit(UiText(R.string.set_selector_imported, current.preview.name))
                 _importState.value = ImportState.Idle
             } else {
-                _importState.value = ImportState.Error(
-                    result.exceptionOrNull()?.message ?: "Import failed"
-                )
+                val e = result.exceptionOrNull()
+                val message = if (e is ImportException) {
+                    UiText(e.resId, *e.args.toTypedArray())
+                } else {
+                    UiText(R.string.set_selector_import_failed)
+                }
+                _importState.value = ImportState.Error(message)
             }
         }
     }
@@ -105,9 +114,15 @@ class SetSelectorViewModel @Inject constructor(
                 if (dirName == appPreferences.selectedSetName) {
                     appPreferences.selectedSetName = null
                 }
-                _snackbarEvent.tryEmit("Deleted '$dirName'")
+                _snackbarEvent.tryEmit(UiText(R.string.set_selector_deleted, dirName))
             } else {
-                _snackbarEvent.tryEmit(result.exceptionOrNull()?.message ?: "Delete failed")
+                val e = result.exceptionOrNull()
+                val message = if (e is ImportException) {
+                    UiText(e.resId, *e.args.toTypedArray())
+                } else {
+                    UiText(R.string.set_selector_delete_failed)
+                }
+                _snackbarEvent.tryEmit(message)
             }
         }
     }

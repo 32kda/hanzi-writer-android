@@ -16,9 +16,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -42,10 +42,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import org.openhanziwriter.app.R
+import org.openhanziwriter.app.ui.components.resolve
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -73,11 +77,13 @@ fun SetSelectorScreen(
         }
     }
 
+    val context = LocalContext.current
+
     LaunchedEffect(Unit) {
         Log.d("SetSelectorScreen", "snackbar LaunchedEffect started")
         viewModel.snackbarEvent.collect { message ->
             Log.d("SetSelectorScreen", "snackbar event: $message")
-            snackbarHostState.showSnackbar(message)
+            snackbarHostState.showSnackbar(message.resolve(context))
             Log.d("SetSelectorScreen", "snackbar shown: $message")
         }
     }
@@ -91,11 +97,11 @@ fun SetSelectorScreen(
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Choose a Character Set") },
+                title = { Text(stringResource(R.string.set_selector_title)) },
                 navigationIcon = {
                     onBack?.let { back ->
                         IconButton(onClick = back) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.set_selector_back))
                         }
                     }
                 }
@@ -109,7 +115,7 @@ fun SetSelectorScreen(
                     "application/csv", "application/zip"
                 ))
             }) {
-                Icon(Icons.Default.Add, contentDescription = "Import character set")
+                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.set_selector_import))
             }
         }
     ) { padding ->
@@ -127,7 +133,7 @@ fun SetSelectorScreen(
                 )
             } else if (state.sets.isEmpty()) {
                 Text(
-                    text = "No character sets found. Tap + to import one.",
+                    text = stringResource(R.string.set_selector_empty),
                     style = MaterialTheme.typography.bodyLarge
                 )
             } else {
@@ -175,7 +181,7 @@ fun SetSelectorScreen(
                                     IconButton(onClick = { viewModel.deleteSet(set.dirName) }) {
                                         Icon(
                                             Icons.Default.Delete,
-                                            contentDescription = "Delete set",
+                                            contentDescription = stringResource(R.string.set_selector_delete),
                                             tint = MaterialTheme.colorScheme.error,
                                             modifier = Modifier.size(20.dp)
                                         )
@@ -194,18 +200,18 @@ fun SetSelectorScreen(
             if (imp.preview.collision != null) {
                 AlertDialog(
                     onDismissRequest = { viewModel.dismissImport() },
-                    title = { Text("Overwrite set?") },
+                    title = { Text(stringResource(R.string.set_selector_overwrite_title)) },
                     text = {
-                        Text("A set named '${imp.preview.name}' already exists. Overwrite?")
+                        Text(stringResource(R.string.set_selector_overwrite_body, imp.preview.name))
                     },
                     confirmButton = {
                         TextButton(onClick = { viewModel.confirmImport(overwrite = true) }) {
-                            Text("Overwrite")
+                            Text(stringResource(R.string.set_selector_overwrite_confirm))
                         }
                     },
                     dismissButton = {
                         TextButton(onClick = { viewModel.dismissImport() }) {
-                            Text("Cancel")
+                            Text(stringResource(R.string.set_selector_cancel))
                         }
                     }
                 )
@@ -219,7 +225,7 @@ fun SetSelectorScreen(
         is ImportState.Importing -> {
             AlertDialog(
                 onDismissRequest = {},
-                title = { Text("Importing...") },
+                title = { Text(stringResource(R.string.set_selector_importing)) },
                 text = { CircularProgressIndicator() },
                 confirmButton = {}
             )
@@ -227,11 +233,11 @@ fun SetSelectorScreen(
         is ImportState.Error -> {
             AlertDialog(
                 onDismissRequest = { viewModel.dismissImport() },
-                title = { Text("Import failed") },
-                text = { Text(imp.message) },
+                title = { Text(stringResource(R.string.set_selector_import_failed)) },
+                text = { Text(imp.message.resolve()) },
                 confirmButton = {
                     TextButton(onClick = { viewModel.dismissImport() }) {
-                        Text("OK")
+                        Text(stringResource(R.string.set_selector_ok))
                     }
                 }
             )

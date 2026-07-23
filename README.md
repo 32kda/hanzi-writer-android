@@ -9,6 +9,7 @@ Chinese Character Writing Trainer for Android (API 26+).
 ### What is Hanzi Writer?
 
 Hanzi Writer is a Chinese character writing trainer that helps you learn and practice writing Hànzì (Chinese characters) using the correct stroke order. Each character is split into individual strokes; you draw them one by one and the app checks if you got the right stroke in the right direction.
+This app is build around an Android port of original HanziWriter project.
 
 ### Choosing a Character Set
 

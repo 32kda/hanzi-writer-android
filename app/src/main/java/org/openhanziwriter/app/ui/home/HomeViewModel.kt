@@ -3,12 +3,14 @@ package org.openhanziwriter.app.ui.home
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import org.openhanziwriter.app.R
 import org.openhanziwriter.app.data.local.AppPreferences
 import org.openhanziwriter.app.data.local.CharacterSetLoader
 import org.openhanziwriter.app.data.repository.CharacterSetRepository
 import org.openhanziwriter.app.data.repository.ProgressRepository
 import org.openhanziwriter.app.domain.algorithm.CharacterSelector
 import org.openhanziwriter.app.domain.model.quiz.QuizCard
+import org.openhanziwriter.app.ui.components.UiText
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -24,8 +26,8 @@ import javax.inject.Inject
 data class HomeUiState(
     val setDisplayName: String = "",
     val hasValidSet: Boolean = true,
-    val streakText: String = "Streak: 0 days",
-    val engagementText: String = "Today: 0 min — No activity",
+    val streakText: UiText = UiText(R.string.home_streak_start),
+    val engagementText: UiText = UiText(R.string.home_today_ready),
     val nextLearningChars: List<Int> = emptyList(),
     val nextReviewChars: List<Int> = emptyList(),
     val nextQuizChars: List<Int> = emptyList(),
@@ -62,7 +64,7 @@ class HomeViewModel @Inject constructor(
             progressRepository.observeStreak().collect { streak ->
                 val streakDays = streak?.currentStreak ?: 0
                 _state.value = _state.value.copy(
-                    streakText = if (streakDays > 0) "\uD83D\uDD25 Streak: $streakDays days" else "Start your streak!"
+                    streakText = if (streakDays > 0) UiText(R.string.home_streak_fmt, streakDays) else UiText(R.string.home_streak_start)
                 )
             }
         }
@@ -70,7 +72,7 @@ class HomeViewModel @Inject constructor(
             val today = LocalDate.now().toString()
             val minutes = progressRepository.getTotalMinutesForDate(today)
             _state.value = _state.value.copy(
-                engagementText = if (minutes > 0) "Today: $minutes min" else "Today: 0 min — Ready to practice"
+                engagementText = if (minutes > 0) UiText(R.string.home_today_fmt, minutes) else UiText(R.string.home_today_ready)
             )
         }
     }
@@ -80,14 +82,14 @@ class HomeViewModel @Inject constructor(
             val currentName = appPreferences.selectedSetName ?: ""
             if (currentName != setName) {
                 _state.value = _state.value.copy(
-                    setDisplayName = "No set selected",
+                    setDisplayName = context.getString(R.string.home_no_set_selected),
                     hasValidSet = false
                 )
             } else {
                 val setInfo = repository.findSetInfo(setName)
                 if (setInfo == null) {
                     _state.value = _state.value.copy(
-                        setDisplayName = "No set selected",
+                        setDisplayName = context.getString(R.string.home_no_set_selected),
                         hasValidSet = false
                     )
                 }
@@ -124,7 +126,7 @@ class HomeViewModel @Inject constructor(
 
         if (setInfo == null) {
             _state.value = _state.value.copy(
-                setDisplayName = "No set selected",
+                setDisplayName = context.getString(R.string.home_no_set_selected),
                 hasValidSet = false
             )
             return

@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">OpenHanziWriter</string>
+
+    <string name="set_selector_title">Выберите набор иероглифов</string>
+    <string name="set_selector_back">Назад</string>
+    <string name="set_selector_import">Импорт набора иероглифов</string>
+    <string name="set_selector_empty">Наборы не найдены. Нажмите + чтобы импортировать.</string>
+    <string name="set_selector_delete">Удалить набор</string>
+    <string name="set_selector_overwrite_title">Перезаписать набор?</string>
+    <string name="set_selector_overwrite_body">Набор с именем \'%1$s\' уже существует. Перезаписать?</string>
+    <string name="set_selector_overwrite_confirm">Перезаписать</string>
+    <string name="set_selector_cancel">Отмена</string>
+    <string name="set_selector_importing">Импорт…</string>
+    <string name="set_selector_import_failed">Ошибка импорта</string>
+    <string name="set_selector_ok">OK</string>
+    <string name="set_selector_imported">Импортирован \'%1$s\'</string>
+    <string name="set_selector_deleted">Удалён \'%1$s\'</string>
+    <string name="set_selector_delete_failed">Ошибка удаления</string>
+
+    <string name="import_set_exists">Набор \'%1$s\' уже существует</string>
+    <string name="import_builtin_readonly">Нельзя перезаписать встроенный набор \'%1$s\'</string>
+    <string name="import_read_error">Не удалось прочитать файл</string>
+    <string name="import_csv_empty">CSV-файл не содержит допустимых записей</string>
+    <string name="import_zip_no_csv">ZIP-архив не содержит \'%1$s.csv\'</string>
+    <string name="import_set_not_found">Набор \'%1$s\' не найден</string>
+    <string name="import_builtin_delete">Нельзя удалить встроенный набор</string>
+
+    <string name="home_no_set">Набор иероглифов не выбран</string>
+    <string name="home_no_set_body">Ранее выбранный набор больше не доступен. Пожалуйста, выберите другой.</string>
+    <string name="home_choose_set">Выбрать набор</string>
+    <string name="home_change_set">Сменить набор</string>
+    <string name="home_learn">Изучение</string>
+    <string name="home_learn_desc">2–3 новых иероглифа</string>
+    <string name="home_drill">Тренировка</string>
+    <string name="home_drill_desc">5 иероглифов на повторение</string>
+    <string name="home_quiz">Тест</string>
+    <string name="home_quiz_desc">10 иероглифов</string>
+    <string name="home_streak_start">Начните свою серию!</string>
+    <string name="home_today_ready">Сегодня: 0 мин — Готовы практиковаться</string>
+    <string name="home_no_set_selected">Набор не выбран</string>
+    <string name="home_streak_fmt">🔥 Серия: %1$d дн.</string>
+    <string name="home_today_fmt">Сегодня: %1$d мин</string>
+
+    <string name="calendar_title">Календарь</string>
+    <string name="calendar_back">Назад</string>
+    <string name="day_mon">Пн</string>
+    <string name="day_tue">Вт</string>
+    <string name="day_wed">Ср</string>
+    <string name="day_thu">Чт</string>
+    <string name="day_fri">Пт</string>
+    <string name="day_sat">Сб</string>
+    <string name="day_sun">Вс</string>
+
+    <string name="session_back">Назад</string>
+    <string name="session_loading">Загрузка иероглифа…</string>
+    <string name="session_next">Далее</string>
+    <string name="session_stroke_fmt">Черта %1$d из %2$d</string>
+    <string name="session_complete">Занятие завершено!</string>
+    <string name="session_score_fmt">%1$d / %2$d черт правильно (%3$d%%)</string>
+    <string name="session_done">Готово</string>
+    <string name="session_learn">Изучение</string>
+    <string name="session_drill">Тренировка</string>
+    <string name="session_quiz">Тест</string>
+
+    <plurals name="session_chars_trained">
+        <item quantity="one">%1$d иероглиф изучен</item>
+        <item quantity="few">%1$d иероглифа изучено</item>
+        <item quantity="many">%1$d иероглифов изучено</item>
+        <item quantity="other">%1$d иероглифов изучено</item>
+    </plurals>
+    <plurals name="session_per_char_result">
+        <item quantity="one">%1$d/%2$d черта</item>
+        <item quantity="few">%1$d/%2$d черты</item>
+        <item quantity="many">%1$d/%2$d черт</item>
+        <item quantity="other">%1$d/%2$d черт</item>
+    </plurals>
+</resources>

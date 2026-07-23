@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">OpenHanziWriter</string>
+
+    <string name="set_selector_title">选择汉字集</string>
+    <string name="set_selector_back">返回</string>
+    <string name="set_selector_import">导入汉字集</string>
+    <string name="set_selector_empty">未找到汉字集。点击 + 导入。</string>
+    <string name="set_selector_delete">删除汉字集</string>
+    <string name="set_selector_overwrite_title">覆盖汉字集？</string>
+    <string name="set_selector_overwrite_body">名为 \'%1$s\' 的汉字集已存在。是否覆盖？</string>
+    <string name="set_selector_overwrite_confirm">覆盖</string>
+    <string name="set_selector_cancel">取消</string>
+    <string name="set_selector_importing">正在导入…</string>
+    <string name="set_selector_import_failed">导入失败</string>
+    <string name="set_selector_ok">确定</string>
+    <string name="set_selector_imported">已导入 \'%1$s\'</string>
+    <string name="set_selector_deleted">已删除 \'%1$s\'</string>
+    <string name="set_selector_delete_failed">删除失败</string>
+
+    <string name="import_set_exists">汉字集 \'%1$s\' 已存在</string>
+    <string name="import_builtin_readonly">无法覆盖内置汉字集 \'%1$s\'</string>
+    <string name="import_read_error">无法读取文件</string>
+    <string name="import_csv_empty">CSV 文件不包含有效条目</string>
+    <string name="import_zip_no_csv">ZIP 文件不包含 \'%1$s.csv\'</string>
+    <string name="import_set_not_found">未找到汉字集 \'%1$s\'</string>
+    <string name="import_builtin_delete">无法删除内置汉字集</string>
+
+    <string name="home_no_set">未选择汉字集</string>
+    <string name="home_no_set_body">之前选择的汉字集不再可用，请选择其他汉字集。</string>
+    <string name="home_choose_set">选择汉字集</string>
+    <string name="home_change_set">更换汉字集</string>
+    <string name="home_learn">学习</string>
+    <string name="home_learn_desc">2–3 个新汉字</string>
+    <string name="home_drill">练习</string>
+    <string name="home_drill_desc">5 个复习汉字</string>
+    <string name="home_quiz">测试</string>
+    <string name="home_quiz_desc">10 个汉字</string>
+    <string name="home_streak_start">开始你的连续记录！</string>
+    <string name="home_today_ready">今天：0 分钟 — 准备练习</string>
+    <string name="home_no_set_selected">未选择汉字集</string>
+    <string name="home_streak_fmt">🔥 连续：%1$d 天</string>
+    <string name="home_today_fmt">今天：%1$d 分钟</string>
+
+    <string name="calendar_title">日历</string>
+    <string name="calendar_back">返回</string>
+    <string name="day_mon">一</string>
+    <string name="day_tue">二</string>
+    <string name="day_wed">三</string>
+    <string name="day_thu">四</string>
+    <string name="day_fri">五</string>
+    <string name="day_sat">六</string>
+    <string name="day_sun">日</string>
+
+    <string name="session_back">返回</string>
+    <string name="session_loading">正在加载汉字…</string>
+    <string name="session_next">下一个</string>
+    <string name="session_stroke_fmt">第 %1$d 画，共 %2$d 画</string>
+    <string name="session_complete">课程完成！</string>
+    <string name="session_score_fmt">%1$d / %2$d 笔画正确（%3$d%%）</string>
+    <string name="session_done">完成</string>
+    <string name="session_learn">学习</string>
+    <string name="session_drill">练习</string>
+    <string name="session_quiz">测试</string>
+
+    <plurals name="session_chars_trained">
+        <item quantity="other">已练习 %1$d 个汉字</item>
+    </plurals>
+    <plurals name="session_per_char_result">
+        <item quantity="other">%1$d/%2$d 笔画</item>
+    </plurals>
+</resources>

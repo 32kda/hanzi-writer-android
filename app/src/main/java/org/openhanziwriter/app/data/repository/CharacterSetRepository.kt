@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import android.provider.OpenableColumns
 import android.util.Log
+import org.openhanziwriter.app.R
 import org.openhanziwriter.app.data.local.CharacterSetEntry
 import org.openhanziwriter.app.data.local.CharacterSetInfo
 import org.openhanziwriter.app.data.local.CharacterSetLoader
@@ -85,11 +86,11 @@ class CharacterSetRepository @Inject constructor(
             if (!overwrite) {
                 val existing = _sets.value.find { it.dirName == name }
                 if (existing != null) {
-                    return@withContext Result.failure(ImportException("Set '$name' already exists"))
+                    return@withContext Result.failure(ImportException(R.string.import_set_exists, name))
                 }
             }
             if (builtInSets.any { it.dirName == name }) {
-                return@withContext Result.failure(ImportException("Cannot overwrite built-in set '$name'"))
+                return@withContext Result.failure(ImportException(R.string.import_builtin_readonly, name))
             }
 
             val dir = File(getCustomSetsDir(), name)
@@ -116,12 +117,12 @@ class CharacterSetRepository @Inject constructor(
             csvFile.outputStream().use { output ->
                 input.copyTo(output)
             }
-        } ?: throw ImportException("Could not read file")
+        } ?: throw ImportException(R.string.import_read_error)
 
         val entries = CharacterSetLoader.loadFromCsv(csvFile)
         if (entries.isEmpty()) {
             dir.deleteRecursively()
-            throw ImportException("CSV file contains no valid entries")
+            throw ImportException(R.string.import_csv_empty)
         }
     }
 
@@ -149,21 +150,21 @@ class CharacterSetRepository @Inject constructor(
                     entry = zip.nextEntry
                 }
             }
-        } ?: throw ImportException("Could not read file")
+        } ?: throw ImportException(R.string.import_read_error)
 
         if (!csvFound) {
             dir.deleteRecursively()
-            throw ImportException("ZIP file does not contain '$name.csv'")
+            throw ImportException(R.string.import_zip_no_csv, name)
         }
     }
 
     suspend fun deleteSet(dirName: String): Result<Unit> = withContext(Dispatchers.IO) {
         try {
             val setInfo = _sets.value.find { it.dirName == dirName }
-                ?: return@withContext Result.failure(ImportException("Set '$dirName' not found"))
+                ?: return@withContext Result.failure(ImportException(R.string.import_set_not_found, dirName))
 
             if (setInfo.isBuiltIn) {
-                return@withContext Result.failure(ImportException("Cannot delete built-in set"))
+                return@withContext Result.failure(ImportException(R.string.import_builtin_delete))
             }
 
             val dir = File(getCustomSetsDir(), dirName)
@@ -200,4 +201,6 @@ class CharacterSetRepository @Inject constructor(
     }
 }
 
-class ImportException(message: String) : Exception(message)
+class ImportException(val resId: Int, val args: List<String> = emptyList()) : Exception() {
+    constructor(resId: Int, vararg args: String) : this(resId, args.toList())
+}

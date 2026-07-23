@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">OpenHanziWriter</string>
+
+    <string name="set_selector_title">Schriftzeichensatz wählen</string>
+    <string name="set_selector_back">Zurück</string>
+    <string name="set_selector_import">Schriftzeichensatz importieren</string>
+    <string name="set_selector_empty">Keine Sätze gefunden. Tippe + zum Importieren.</string>
+    <string name="set_selector_delete">Satz löschen</string>
+    <string name="set_selector_overwrite_title">Satz überschreiben?</string>
+    <string name="set_selector_overwrite_body">Ein Satz mit dem Namen \'%1$s\' existiert bereits. Überschreiben?</string>
+    <string name="set_selector_overwrite_confirm">Überschreiben</string>
+    <string name="set_selector_cancel">Abbrechen</string>
+    <string name="set_selector_importing">Importiere…</string>
+    <string name="set_selector_import_failed">Import fehlgeschlagen</string>
+    <string name="set_selector_ok">OK</string>
+    <string name="set_selector_imported">\'%1$s\' importiert</string>
+    <string name="set_selector_deleted">\'%1$s\' gelöscht</string>
+    <string name="set_selector_delete_failed">Löschen fehlgeschlagen</string>
+
+    <string name="import_set_exists">Satz \'%1$s\' existiert bereits</string>
+    <string name="import_builtin_readonly">Integrierter Satz \'%1$s\' kann nicht überschrieben werden</string>
+    <string name="import_read_error">Datei konnte nicht gelesen werden</string>
+    <string name="import_csv_empty">CSV-Datei enthält keine gültigen Einträge</string>
+    <string name="import_zip_no_csv">ZIP-Archiv enthält keine \'%1$s.csv\'</string>
+    <string name="import_set_not_found">Satz \'%1$s\' nicht gefunden</string>
+    <string name="import_builtin_delete">Integrierter Satz kann nicht gelöscht werden</string>
+
+    <string name="home_no_set">Kein Schriftzeichensatz ausgewählt</string>
+    <string name="home_no_set_body">Der zuvor ausgewählte Satz ist nicht mehr verfügbar. Bitte wähle einen anderen.</string>
+    <string name="home_choose_set">Satz wählen</string>
+    <string name="home_change_set">Satz wechseln</string>
+    <string name="home_learn">Lernen</string>
+    <string name="home_learn_desc">2–3 neue Zeichen</string>
+    <string name="home_drill">Wiederholen</string>
+    <string name="home_drill_desc">5 Zeichen zur Wiederholung</string>
+    <string name="home_quiz">Test</string>
+    <string name="home_quiz_desc">10 Zeichen</string>
+    <string name="home_streak_start">Starte deine Serie!</string>
+    <string name="home_today_ready">Heute: 0 Min — Bereit zum Üben</string>
+    <string name="home_no_set_selected">Kein Satz ausgewählt</string>
+    <string name="home_streak_fmt">🔥 Serie: %1$d Tage</string>
+    <string name="home_today_fmt">Heute: %1$d Min</string>
+
+    <string name="calendar_title">Kalender</string>
+    <string name="calendar_back">Zurück</string>
+    <string name="day_mon">Mo</string>
+    <string name="day_tue">Di</string>
+    <string name="day_wed">Mi</string>
+    <string name="day_thu">Do</string>
+    <string name="day_fri">Fr</string>
+    <string name="day_sat">Sa</string>
+    <string name="day_sun">So</string>
+
+    <string name="session_back">Zurück</string>
+    <string name="session_loading">Zeichen wird geladen…</string>
+    <string name="session_next">Weiter</string>
+    <string name="session_stroke_fmt">Strich %1$d von %2$d</string>
+    <string name="session_complete">Lektion abgeschlossen!</string>
+    <string name="session_score_fmt">%1$d / %2$d Striche korrekt (%3$d%%)</string>
+    <string name="session_done">Fertig</string>
+    <string name="session_learn">Lernen</string>
+    <string name="session_drill">Wiederholen</string>
+    <string name="session_quiz">Test</string>
+
+    <plurals name="session_chars_trained">
+        <item quantity="one">%1$d Zeichen geübt</item>
+        <item quantity="other">%1$d Zeichen geübt</item>
+    </plurals>
+    <plurals name="session_per_char_result">
+        <item quantity="one">%1$d/%2$d Strich</item>
+        <item quantity="other">%1$d/%2$d Striche</item>
+    </plurals>
+</resources>

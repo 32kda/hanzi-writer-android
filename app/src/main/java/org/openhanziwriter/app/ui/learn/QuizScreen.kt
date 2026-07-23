@@ -4,7 +4,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
+import org.openhanziwriter.app.R
 
 @Composable
 fun QuizScreen(
@@ -28,7 +30,7 @@ fun QuizScreen(
 
     SessionScreenContent(
         state = state,
-        title = "Quiz",
+        title = stringResource(R.string.session_quiz),
         onStrokeStart = { offset -> viewModel.onStrokeStart(offset) },
         onStrokeMove = { offset -> viewModel.onStrokeMove(offset) },
         onStrokeEnd = { viewModel.onStrokeEnd() },

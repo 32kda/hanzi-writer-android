@@ -22,9 +22,12 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import org.openhanziwriter.app.R
+import org.openhanziwriter.app.ui.components.resolve
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -57,24 +60,24 @@ fun HomeScreen(
         ) {
             if (!state.hasValidSet) {
                 Text(
-                    text = "No character set selected",
+                    text = stringResource(R.string.home_no_set),
                     style = MaterialTheme.typography.headlineLarge,
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = "The previously selected set is no longer available. Please choose a different set.",
+                    text = stringResource(R.string.home_no_set_body),
                     style = MaterialTheme.typography.bodyLarge
                 )
                 Spacer(modifier = Modifier.height(24.dp))
                 Button(onClick = onChangeSet) {
-                    Text("Choose a Set")
+                    Text(stringResource(R.string.home_choose_set))
                 }
             return@Scaffold
         }
 
         Text(
-            text = state.streakText,
+            text = state.streakText.resolve(),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.clickable { onViewCalendar() }
@@ -83,21 +86,21 @@ fun HomeScreen(
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = state.engagementText,
+                text = state.engagementText.resolve(),
                 style = MaterialTheme.typography.bodyMedium
             )
 
             Spacer(modifier = Modifier.height(4.dp))
 
             Button(onClick = onChangeSet) {
-                Text("Change Set")
+                Text(stringResource(R.string.home_change_set))
             }
 
             Spacer(modifier = Modifier.height(24.dp))
 
             ActivityCard(
-                title = "Learn",
-                description = "2-3 new characters",
+                title = stringResource(R.string.home_learn),
+                description = stringResource(R.string.home_learn_desc),
                 chars = state.learnCharacters,
                 color = MaterialTheme.colorScheme.primary,
                 onClick = { if (state.nextLearningChars.isNotEmpty()) onNavigateToLearn(state.nextLearningChars) }
@@ -106,8 +109,8 @@ fun HomeScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             ActivityCard(
-                title = "Drill",
-                description = "5 review characters",
+                title = stringResource(R.string.home_drill),
+                description = stringResource(R.string.home_drill_desc),
                 chars = state.drillCharacters,
                 color = MaterialTheme.colorScheme.secondary,
                 onClick = { if (state.nextReviewChars.isNotEmpty()) onNavigateToDrill(state.nextReviewChars) }
@@ -116,8 +119,8 @@ fun HomeScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             ActivityCard(
-                title = "Quiz",
-                description = "10 characters",
+                title = stringResource(R.string.home_quiz),
+                description = stringResource(R.string.home_quiz_desc),
                 chars = emptyList(),
                 color = MaterialTheme.colorScheme.error,
                 onClick = { if (state.nextQuizChars.isNotEmpty()) onNavigateToQuiz(state.nextQuizChars) }

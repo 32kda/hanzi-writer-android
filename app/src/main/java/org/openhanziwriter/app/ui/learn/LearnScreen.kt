@@ -43,7 +43,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
+import org.openhanziwriter.app.R
 import org.openhanziwriter.app.ui.components.DrawableStroke
 import org.openhanziwriter.app.ui.components.WritingCanvas
 
@@ -81,7 +83,7 @@ fun SessionScreenContent(
                 title = { Text(title) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.session_back))
                     }
                 }
             )
@@ -97,7 +99,7 @@ fun SessionScreenContent(
                 verticalArrangement = Arrangement.Center
             ) {
                 CircularProgressIndicator()
-                Text("Loading character...", modifier = Modifier.padding(top = 16.dp))
+                Text(stringResource(R.string.session_loading), modifier = Modifier.padding(top = 16.dp))
             }
             return@Scaffold
         }
@@ -194,7 +196,7 @@ fun SessionScreenContent(
                     onClick = onSkipDemo,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Next")
+                    Text(stringResource(R.string.session_next))
                 }
             }
             return@Scaffold
@@ -259,7 +261,7 @@ fun SessionScreenContent(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "Stroke ${state.currentStrokeIndex + 1} of ${character.strokeCount}",
+                text = stringResource(R.string.session_stroke_fmt, state.currentStrokeIndex + 1, character.strokeCount),
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.fillMaxWidth(),
                 textAlign = TextAlign.Center
@@ -294,7 +296,7 @@ private fun SessionResultContent(
             .padding(16.dp)
     ) {
         Text(
-            text = "Session Complete!",
+            text = stringResource(R.string.session_complete),
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center,
@@ -304,7 +306,7 @@ private fun SessionResultContent(
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "$totalCorrect / $totalAttempts strokes correct ($overallPct%)",
+            text = stringResource(R.string.session_score_fmt, totalCorrect, totalAttempts, overallPct),
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth()
@@ -317,7 +319,7 @@ private fun SessionResultContent(
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "${items.size} character(s) trained",
+            text = stringResource(R.plurals.session_chars_trained, items.size, items.size),
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.padding(bottom = 8.dp)
         )
@@ -349,7 +351,7 @@ private fun SessionResultContent(
 
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "${result.correctAttempts}/${result.totalAttempts} strokes",
+                            text = stringResource(R.plurals.session_per_char_result, result.totalAttempts, result.correctAttempts, result.totalAttempts),
                             style = MaterialTheme.typography.bodyMedium
                         )
                         LinearProgressIndicator(
@@ -374,7 +376,7 @@ private fun SessionResultContent(
             onClick = onDismiss,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Done")
+            Text(stringResource(R.string.session_done))
         }
     }
 }
@@ -401,7 +403,7 @@ fun LearnScreen(
 
     SessionScreenContent(
         state = state,
-        title = "Learn",
+        title = stringResource(R.string.session_learn),
         onStrokeStart = { offset -> viewModel.onStrokeStart(offset) },
         onStrokeMove = { offset -> viewModel.onStrokeMove(offset) },
         onStrokeEnd = { viewModel.onStrokeEnd() },
