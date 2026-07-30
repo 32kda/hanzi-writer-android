@@ -1,0 +1,5 @@
+- Clickable set name in top bar — tap to switch character set
+- Active character set highlighted on selection screen
+- Removed unused POST_NOTIFICATIONS permission
+- Improved Russian store description
+- Signed release APK for app stores

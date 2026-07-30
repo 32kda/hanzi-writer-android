@@ -136,7 +136,8 @@ fun NavGraph(
                     { navController.popBackStack() }
                 } else {
                     null
-                }
+                },
+                activeSetName = savedSetName
             )
         }
 

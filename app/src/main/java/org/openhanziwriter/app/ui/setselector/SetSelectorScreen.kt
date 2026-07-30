@@ -56,6 +56,7 @@ import org.openhanziwriter.app.ui.components.resolve
 fun SetSelectorScreen(
     onSetSelected: (String) -> Unit,
     onBack: (() -> Unit)? = null,
+    activeSetName: String? = null,
     viewModel: SetSelectorViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -153,7 +154,13 @@ fun SetSelectorScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable { onSetSelected(set.dirName) },
-                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (set.dirName == activeSetName)
+                                    MaterialTheme.colorScheme.primaryContainer
+                                else
+                                    MaterialTheme.colorScheme.surface
+                            )
                         ) {
                             Row(
                                 modifier = Modifier

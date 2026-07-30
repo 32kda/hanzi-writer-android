@@ -62,6 +62,11 @@
     <string name="session_learn">学习</string>
     <string name="session_drill">练习</string>
     <string name="session_quiz">测试</string>
+    <string name="session_rating_unreal">难以置信</string>
+    <string name="session_rating_awesome">太棒了</string>
+    <string name="session_rating_excellent">优秀</string>
+    <string name="session_rating_perfect">完美</string>
+    <string name="session_rating_good">不错</string>
 
     <plurals name="session_chars_trained">
         <item quantity="other">已练习 %1$d 个汉字</item>

@@ -62,6 +62,11 @@
     <string name="session_learn">Lernen</string>
     <string name="session_drill">Wiederholen</string>
     <string name="session_quiz">Test</string>
+    <string name="session_rating_unreal">Unfassbar</string>
+    <string name="session_rating_awesome">Großartig</string>
+    <string name="session_rating_excellent">Ausgezeichnet</string>
+    <string name="session_rating_perfect">Perfekt</string>
+    <string name="session_rating_good">Gut</string>
 
     <plurals name="session_chars_trained">
         <item quantity="one">%1$d Zeichen geübt</item>

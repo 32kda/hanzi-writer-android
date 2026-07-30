@@ -2,18 +2,23 @@ package org.openhanziwriter.app.ui.home
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -45,7 +50,19 @@ fun HomeScreen(
         topBar = {
             if (state.hasValidSet) {
                 CenterAlignedTopAppBar(
-                    title = { Text(state.setDisplayName) }
+                    title = {
+                        Row(
+                            modifier = Modifier.clickable { onChangeSet() },
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(state.setDisplayName)
+                            Icon(
+                                Icons.Default.ArrowDropDown,
+                                contentDescription = stringResource(R.string.home_change_set),
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
                 )
             }
         }

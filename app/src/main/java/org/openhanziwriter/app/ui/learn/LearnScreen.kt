@@ -40,6 +40,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -275,6 +276,7 @@ private fun SessionResultContent(
     state: LearnUiState,
     onDismiss: () -> Unit
 ) {
+    val context = LocalContext.current
     val items = state.sessionCharacters.mapNotNull { char ->
         val unicode = char.symbol.codePointAt(0)
         val result = state.sessionResults[unicode]
@@ -312,6 +314,26 @@ private fun SessionResultContent(
             modifier = Modifier.fillMaxWidth()
         )
 
+        if (overallPct >= 50) {
+            val fraction = ((overallPct - 50) / 50f).coerceIn(0f, 1f)
+            val ratingColor = Color(red = 1f - fraction, green = 1f, blue = 0f)
+            val ratingResId = when {
+                overallPct >= 99 -> R.string.session_rating_unreal
+                overallPct >= 90 -> R.string.session_rating_awesome
+                overallPct >= 70 -> R.string.session_rating_excellent
+                overallPct >= 60 -> R.string.session_rating_perfect
+                else -> R.string.session_rating_good
+            }
+            Text(
+                text = stringResource(ratingResId),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = ratingColor,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+
         Spacer(modifier = Modifier.height(12.dp))
 
         HorizontalDivider()
@@ -319,7 +341,7 @@ private fun SessionResultContent(
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = stringResource(R.plurals.session_chars_trained, items.size, items.size),
+            text = context.resources.getQuantityString(R.plurals.session_chars_trained, items.size, items.size),
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.padding(bottom = 8.dp)
         )
@@ -351,7 +373,7 @@ private fun SessionResultContent(
 
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = stringResource(R.plurals.session_per_char_result, result.totalAttempts, result.correctAttempts, result.totalAttempts),
+                            text = context.resources.getQuantityString(R.plurals.session_per_char_result, result.totalAttempts, result.correctAttempts, result.totalAttempts),
                             style = MaterialTheme.typography.bodyMedium
                         )
                         LinearProgressIndicator(

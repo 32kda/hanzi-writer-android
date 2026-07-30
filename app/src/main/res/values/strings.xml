@@ -67,6 +67,11 @@
     <string name="session_learn">Learn</string>
     <string name="session_drill">Drill</string>
     <string name="session_quiz">Quiz</string>
+    <string name="session_rating_unreal">Unreal</string>
+    <string name="session_rating_awesome">Awesome</string>
+    <string name="session_rating_excellent">Excellent</string>
+    <string name="session_rating_perfect">Perfect</string>
+    <string name="session_rating_good">Good</string>
 
     <!-- Plurals -->
     <plurals name="session_chars_trained">

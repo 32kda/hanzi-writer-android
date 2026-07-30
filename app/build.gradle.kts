@@ -6,17 +6,32 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
 }
 
+import java.util.Properties
+
 android {
     namespace = "org.openhanziwriter.app"
     compileSdk = 34
+
+    val keystorePropertiesFile = file("keystore.properties")
+    if (keystorePropertiesFile.exists()) {
+        val props = Properties().apply { load(keystorePropertiesFile.inputStream()) }
+        signingConfigs {
+            create("release") {
+                storeFile = file(props.getProperty("storeFile"))
+                storePassword = props.getProperty("storePassword")
+                keyAlias = props.getProperty("keyAlias")
+                keyPassword = props.getProperty("keyPassword")
+            }
+        }
+    }
 
     defaultConfig {
         applicationId = "org.openhanziwriter.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 3
+        versionCode = 4
 
-        versionName = "1.1.1"
+        versionName = "1.1.2"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
     }
@@ -26,6 +41,7 @@ android {
             isDebuggable = true
         }
         release {
+            signingConfig = signingConfigs.findByName("release")
             isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),

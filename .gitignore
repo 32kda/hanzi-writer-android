@@ -13,3 +13,5 @@ local.properties
 opencode.json
 /app/src/main/assets/databases/characters.db
 __pycache__/
+*.jks
+keystore.properties

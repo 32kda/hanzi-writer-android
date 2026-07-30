@@ -62,6 +62,11 @@
     <string name="session_learn">Изучение</string>
     <string name="session_drill">Тренировка</string>
     <string name="session_quiz">Тест</string>
+    <string name="session_rating_unreal">Невероятно</string>
+    <string name="session_rating_awesome">Потрясающе</string>
+    <string name="session_rating_excellent">Отлично</string>
+    <string name="session_rating_perfect">Хорошо</string>
+    <string name="session_rating_good">Неплохо</string>
 
     <plurals name="session_chars_trained">
         <item quantity="one">%1$d иероглиф изучен</item>
