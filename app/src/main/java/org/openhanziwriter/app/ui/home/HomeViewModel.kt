@@ -105,8 +105,8 @@ class HomeViewModel @Inject constructor(
             val (learnUnicodes, drillUnicodes, quizUnicodes) = withContext(Dispatchers.Default) {
                 Triple(
                     CharacterSelector.select(allUnicodes, progressMap, count = 2),
-                    CharacterSelector.select(allUnicodes, progressMap, count = 5),
-                    CharacterSelector.select(allUnicodes, progressMap, count = 10)
+                    CharacterSelector.selectFromPracticed(allUnicodes, progressMap, count = 5),
+                    CharacterSelector.selectFromPracticed(allUnicodes, progressMap, count = 10)
                 )
             }
 

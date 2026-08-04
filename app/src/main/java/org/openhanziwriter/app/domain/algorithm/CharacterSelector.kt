@@ -17,6 +17,34 @@ object CharacterSelector {
         progress: Map<Int, ProgressInfo>,
         count: Int
     ): List<Int> {
+        return selectInternal(unicodes, progress, count)
+    }
+
+    /**
+     * Selects characters prioritizing those already practiced at least once.
+     * Fills remaining slots from unpracticed characters if needed.
+     */
+    fun selectFromPracticed(
+        unicodes: List<Int>,
+        progress: Map<Int, ProgressInfo>,
+        count: Int
+    ): List<Int> {
+        val practiced = unicodes.filter { (progress[it]?.timesPracticed ?: 0) > 0 }
+        val unpracticed = unicodes.filter { (progress[it]?.timesPracticed ?: 0) == 0 }
+
+        val fromPracticed = practiced.shuffled(Random).take(count)
+        if (fromPracticed.size >= count) return fromPracticed
+
+        val remaining = count - fromPracticed.size
+        val fromUnpracticed = selectInternal(unpracticed, progress, remaining)
+        return fromPracticed + fromUnpracticed
+    }
+
+    private fun selectInternal(
+        unicodes: List<Int>,
+        progress: Map<Int, ProgressInfo>,
+        count: Int
+    ): List<Int> {
         if (unicodes.isEmpty() || count <= 0) return emptyList()
         val n = count.coerceAtMost(unicodes.size)
 
