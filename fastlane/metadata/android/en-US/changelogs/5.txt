@@ -1,0 +1,5 @@
+- Drill and Quiz now prioritize previously practiced characters first
+- Smarter character rotation algorithm using 14-day decay scoring
+- Signed release APKs via GitHub Actions with keystore from Secrets
+- Removed unused POST_NOTIFICATIONS permission
+- Fixed plural forms in session results screen

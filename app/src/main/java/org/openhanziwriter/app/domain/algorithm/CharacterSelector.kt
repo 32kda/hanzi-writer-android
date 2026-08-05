@@ -22,7 +22,9 @@ object CharacterSelector {
 
     /**
      * Selects characters prioritizing those already practiced at least once.
-     * Fills remaining slots from unpracticed characters if needed.
+     * When the practiced pool is small (less than 3x count), mixes in some
+     * unpracticed characters for variety. Uses scoring on practiced chars to
+     * rotate through them naturally via the 14-day decay system.
      */
     fun selectFromPracticed(
         unicodes: List<Int>,
@@ -32,11 +34,33 @@ object CharacterSelector {
         val practiced = unicodes.filter { (progress[it]?.timesPracticed ?: 0) > 0 }
         val unpracticed = unicodes.filter { (progress[it]?.timesPracticed ?: 0) == 0 }
 
-        val fromPracticed = practiced.shuffled(Random).take(count)
-        if (fromPracticed.size >= count) return fromPracticed
+        if (practiced.isEmpty()) return selectInternal(unicodes, progress, count)
 
-        val remaining = count - fromPracticed.size
-        val fromUnpracticed = selectInternal(unpracticed, progress, remaining)
+        // When practiced pool is small, mix in unpracticed for variety.
+        // Threshold: if less than 3x count, introduce 1-2 new chars per session.
+        val practicedRatio = practiced.size.toFloat() / count
+        val newCharsCount = when {
+            practicedRatio < 1f -> count - practiced.size        // not enough: take all practiced + fill
+            practicedRatio < 2f -> 2                             // small pool: 2 new chars per session
+            practicedRatio < 3f -> 1                             // medium pool: 1 new char per session
+            else -> 0                                            // large pool: pure review
+        }
+
+        val fromPracticedCount = (count - newCharsCount).coerceAtMost(practiced.size)
+        val fromUnpracticedCount = (count - fromPracticedCount).coerceAtMost(unpracticed.size)
+
+        val fromPracticed = selectInternal(practiced, progress, fromPracticedCount)
+        val fromUnpracticed = if (fromUnpracticedCount > 0) {
+            selectInternal(unpracticed, progress, fromUnpracticedCount)
+        } else {
+            // No unpracticed left — fill remaining from practiced
+            selectInternal(
+                practiced.filter { it !in fromPracticed },
+                progress,
+                count - fromPracticed.size
+            )
+        }
+
         return fromPracticed + fromUnpracticed
     }
 
