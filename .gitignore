@@ -16,3 +16,5 @@ __pycache__/
 *.jks
 keystore.properties
 keystore_base64.txt
+build_log.txt
+build_err.txt
